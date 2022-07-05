@@ -29,7 +29,7 @@ clean:
 
 $(ODIR)/debug/$(ONAME): $(DEBUGOBJS)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/debug/$(ONAME) $^ $(DEBUGFLAGS) 
+	$(CC) -o $(ODIR)/debug/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) 
 
 $(OBJ)/debug/%.o: $(SRC)/%.c
 	$(MKDIR)   
@@ -37,13 +37,15 @@ $(OBJ)/debug/%.o: $(SRC)/%.c
 
 $(ODIR)/release/$(ONAME): $(RELEASEOBJS)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/release/$(ONAME) $^ $(RELEASEFLAGS) 
+	$(CC) -o $(ODIR)/release/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) 
 
 $(OBJ)/release/%.o: $(SRC)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
 
--include $(OBJS:.o=.d)
+-include $(DEBUGOBJS:.o=.d)
+-include $(RELEASEOBJS:.o=.d)
+
 
 .PHONY: clean debug
 
