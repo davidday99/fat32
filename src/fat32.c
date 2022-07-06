@@ -5,8 +5,14 @@
 #define MEDIA_REMOVABLE 0xF8
 #define MEDIA_NONREMOVABLE 0xF0
 #define BOOTSIG 0x29
+#define SECTOR_SZ 512
+#define SECTORSIG 0xAA55
+#define SECTORSIG_LO 0x55
+#define SECTORSIG_HI 0xAA
 
-typedef struct __attribute__(( packed )) ios_param_block {
+#define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
+
+typedef struct __attribute__(( packed )) bios_param_block {
     uint16_t bytes_per_sec;
     uint8_t sec_per_clus;
     uint8_t reserved_sec_cnt;
@@ -28,7 +34,7 @@ typedef struct __attribute__(( packed )) ios_param_block {
     uint8_t reserved[12];
 } BPB;
 
-typedef struct __attribute__(( packed )) boot_sector {
+struct __attribute__(( packed )) boot_sector_parameters {
     uint8_t jmp_boot[3];
     uint8_t oem_name[8];
     BPB bpb;
@@ -38,13 +44,41 @@ typedef struct __attribute__(( packed )) boot_sector {
     uint32_t vol_id;
     uint8_t vol_lab[11];
     uint8_t fil_sys_type[8];
-} BS;
+};
+
+typedef struct __attribute__(( packed )) _dir_entry {
+    uint8_t name[11];
+    uint8_t attr;
+    uint8_t NTRes;
+    uint8_t crt_time_tenth;
+    uint16_t crt_time;
+    uint16_t crt_date;
+    uint16_t last_access_date;
+    uint16_t fst_clus_hi;
+    uint16_t wrt_time;
+    uint16_t wrt_date;
+    uint16_t fst_clus_lo;
+    uint32_t file_size;
+} DIR_ENTRY;
+
+typedef union boot_sector {
+    struct boot_sector_parameters params;
+    uint8_t bytes[SECTOR_SZ];
+} BOOT_SECTOR;
+
+static struct {
+    BOOT_SECTOR params;
+    uint8_t valid;
+    uint8_t write_cnt;
+} FILESYS;
 
 static void init_bpb(struct EEPROM *mem);
 
 void format_fat32(struct EEPROM *mem) {
     mem->erase();
     init_bpb(mem);
+    // init FAT
+    // sign sector 0 bytes 511, 512 with 0xAA55
     return;
 }
 
@@ -68,38 +102,50 @@ void fat32_remove(struct EEPROM *mem, char *name) {
 
 }
 
+void init_fat32_fs(struct EEPROM *mem) {
+    for (uint16_t i = 0; i < SECTOR_SZ; i++) {
+        FILESYS.params.bytes[i] = mem->read(i);
+    }
+    FILESYS.valid = VERIFY_SECTORSIG(FILESYS.params.bytes[510], FILESYS.params.bytes[511]);
+}
+
+uint8_t fat32_fs_valid(void) {
+    return FILESYS.valid == 1;
+}
+
 static void init_bpb(struct EEPROM *mem) {
-    BS sector0 = {
-        .bpb.bytes_per_sec = 512,
-        .bpb.sec_per_clus = 1,
-        .bpb.reserved_sec_cnt = 32,
-        .bpb.num_fats = 1,
-        .bpb.root_ent_cnt = 0,
-        .bpb.tot_sec_16 = 0,
-        .bpb.media = MEDIA_NONREMOVABLE,
-        .bpb.fat_sz_16 = 0,
-        .bpb.sec_per_trk = 0,
-        .bpb.num_heads = 0,
-        .bpb.hidd_sec_cnt = 0,
-        .bpb.tot_sec_32 = mem->size() / 512,
-        .bpb.fat_sz_32 = 2,
-        .bpb.ext_flags = 0x0010,
-        .bpb.fs_ver = 0,
-        .bpb.root_clus = 2,
-        .bpb.fs_info = 1,
-        .bpb.bk_boot_sec = 0,
-        .drv_num = 0x80,
-        .reserved1 = 0,
-        .boot_sig = BOOTSIG,
-        .vol_id = 0
+    BOOT_SECTOR sector0 = {
+        .params.bpb.bytes_per_sec = 512,
+        .params.bpb.sec_per_clus = 1,
+        .params.bpb.reserved_sec_cnt = 32,
+        .params.bpb.num_fats = 1,
+        .params.bpb.root_ent_cnt = 0,
+        .params.bpb.tot_sec_16 = 0,
+        .params.bpb.media = MEDIA_NONREMOVABLE,
+        .params.bpb.fat_sz_16 = 0,
+        .params.bpb.sec_per_trk = 0,
+        .params.bpb.num_heads = 0,
+        .params.bpb.hidd_sec_cnt = 0,
+        .params.bpb.tot_sec_32 = mem->size() / 512,
+        .params.bpb.fat_sz_32 = 2,
+        .params.bpb.ext_flags = 0x0010,
+        .params.bpb.fs_ver = 0,
+        .params.bpb.root_clus = 2,
+        .params.bpb.fs_info = 1,
+        .params.bpb.bk_boot_sec = 0,
+        .params.drv_num = 0x80,
+        .params.reserved1 = 0,
+        .params.boot_sig = BOOTSIG,
+        .params.vol_id = 0
     };
-    
-    memcpy(sector0.oem_name, "MSWIN4.1", 8);
-    memcpy(sector0.vol_lab, "NO NAME    ", 11);
-    memcpy(sector0.fil_sys_type, "FAT     ", 8);
+    memcpy(sector0.params.oem_name, "MSWIN4.1", 8);
+    memcpy(sector0.params.vol_lab, "NO NAME    ", 11);
+    memcpy(sector0.params.fil_sys_type, "FAT     ", 8);
+    sector0.bytes[510] = SECTORSIG_LO;
+    sector0.bytes[511] = SECTORSIG_HI;
 
     uint32_t addr = 0;
-    for (uint8_t *bufptr = (uint8_t *) &sector0; bufptr - (uint8_t *) &sector0 < sizeof(BS); bufptr++) {
+    for (uint8_t *bufptr = (uint8_t *) &sector0; bufptr - (uint8_t *) &sector0 < sizeof(BOOT_SECTOR); bufptr++) {
         mem->write(*bufptr, addr++);
     }
 }

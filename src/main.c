@@ -38,6 +38,8 @@ int main() {
     };
 
     format_fat32(&mem);
+    init_fat32_fs(&mem);
+    printf("fs %s\n", fat32_fs_valid() ? "valid" : "invalid");
 
     return 0;
 }
