@@ -9,20 +9,49 @@
 
 static uint8_t MEM[MEM_SZ];
 
-static uint8_t read_mem(uint32_t addr) {
+static uint8_t read_mem8(uint32_t addr) {
     uint8_t v = MEM[addr];
     printf("read %#x %c\n", v, isalnum(v) || ispunct(v) ? v : ' ');
     return v;
 }
 
-static void write_mem(uint8_t v, uint32_t addr) {
-    printf("write %#x %c\n", v, isalnum(v) || ispunct(v) ? v : ' ');
+static uint16_t read_mem16(uint32_t addr) {
+    uint16_t v = (MEM[addr] & 0xFF) | ((MEM[addr + 1] << 8) & 0xFF00);
+    printf("read %#x %c\n", v, isalnum(v) || ispunct(v) ? v : ' ');
+    return v;
+}
+
+static uint32_t read_mem32(uint32_t addr) {
+    uint32_t v = (MEM[addr] & 0xFF) | 
+                 ((MEM[addr + 1] << 8) & 0xFF00) |
+                 ((MEM[addr + 2] << 16) & 0xFF0000) | 
+                 ((MEM[addr + 3] << 24) & 0xFF000000);
+    printf("read %#x %c\n", v, isalnum(v) || ispunct(v) ? v : ' ');
+    return v;
+}
+
+static void write_mem8(uint8_t v, uint32_t addr) { 
     MEM[addr] = v;
+    printf("write %#x to %#x\n", v, addr);
+}
+
+static void write_mem16(uint16_t v, uint32_t addr) {
+    MEM[addr] = v & 0xFF;
+    MEM[addr + 1] = (v >> 8) & 0xFF;
+    printf("write %#x to %#x\n", v, addr);
+}
+
+static void write_mem32(uint32_t v, uint32_t addr) {
+    MEM[addr] = v & 0xFF;
+    MEM[addr + 1] = (v >> 8) & 0xFF;
+    MEM[addr + 2] = (v >> 16) & 0xFF;
+    MEM[addr + 3] = (v >> 24) & 0xFF;
+    printf("write %#x to %#x\n", v, addr);
 }
 
 static void erase_mem() {
     printf("erasing\n");
-    memset(MEM, 0xff, MEM_SZ);
+    memset(MEM, 0xFF, MEM_SZ);
 }
 
 static uint32_t size_mem() {
@@ -31,15 +60,21 @@ static uint32_t size_mem() {
 
 int main() {
     struct EEPROM mem = {
-        .read = read_mem,
-        .write = write_mem,
+        .read8 = read_mem8,
+        .read16 = read_mem16,
+        .read32 = read_mem32,
+        .write8 = write_mem8,
+        .write16 = write_mem16,
+        .write32 = write_mem32,
         .erase = erase_mem,
         .size = size_mem
     };
+    FAT32_FILE f;
 
     format_fat32(&mem);
     init_fat32_fs(&mem);
     printf("fs %s\n", fat32_fs_valid() ? "valid" : "invalid");
-
+    fat32_open("/bin/dir1/dir2/foo.c", &f);
     return 0;
 }
+
