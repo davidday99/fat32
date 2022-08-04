@@ -1,3 +1,9 @@
 # Build files
 bin/
 obj/
+
+# Auto-complete and code navigation 
+compile_commands.json
+tags 
+.cache/
+
