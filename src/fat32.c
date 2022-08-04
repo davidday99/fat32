@@ -8,36 +8,16 @@
 
 static FAT32_FS ACTIVE_FS;
 
-FAT32_FILE *fat32_open(char *path, FAT32_FILE *fptr) {
-    return fat32_fs_valid() ? _fat32_open(path, fptr) : NULL;
-}
-
-void fat32_mkdir(struct EEPROM *mem, char *dirname) {
-
-}
-
-void fat32_mkfile(struct EEPROM *mem, char *fname) {
-
-}
-
-void fat32_move(struct EEPROM *mem, char *name) {
-
-}
-
-void fat32_remove(struct EEPROM *mem, char *name) {
-
-}
-
 void format_fat32(struct EEPROM *mem) {
     _format_fat32(mem);
 }
 
 void init_fat32_fs(struct EEPROM *mem) {
     for (uint16_t i = 0; i < SECTOR_SZ; i++) {
-        ACTIVE_FS.params.bytes[i] = mem->read8(i);
+        ACTIVE_FS.bootsec.bytes[i] = mem->read8(i);
     }
     ACTIVE_FS.mem = mem;
-    ACTIVE_FS.valid = VERIFY_SECTORSIG(ACTIVE_FS.params.bytes[510], ACTIVE_FS.params.bytes[511]);
+    ACTIVE_FS.valid = VERIFY_SECTORSIG(ACTIVE_FS.bootsec.bytes[510], ACTIVE_FS.bootsec.bytes[511]);
 }
 
 void deinit_fat32_fs(void) {
@@ -46,5 +26,21 @@ void deinit_fat32_fs(void) {
 
 uint8_t fat32_fs_valid(void) {
     return ACTIVE_FS.valid == 1;
+}
+
+FAT32_FILE *fat32_open(char *path, FAT32_FILE *fptr) {
+    return fat32_fs_valid() ? _fat32_open(&ACTIVE_FS, path, fptr) : NULL;
+}
+
+void fat32_close(FAT32_FILE *fptr) {
+    return;
+}
+
+uint32_t fat32_read(FAT32_FILE *fptr) {
+    return 0;
+}
+
+uint32_t fat32_write(FAT32_FILE *fptr) {
+    return 0;
 }
 

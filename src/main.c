@@ -6,7 +6,6 @@
 
 #define MEM_SZ 0x20000  // 128 MB
 
-
 static uint8_t MEM[MEM_SZ];
 
 static uint8_t read_mem8(uint32_t addr) {
