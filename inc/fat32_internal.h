@@ -1,5 +1,5 @@
-#ifndef _FAT32_INTERNAL_
-#define _FAT32_INTERNAL_
+#ifndef _FAT32_INTERNAL_H_
+#define _FAT32_INTERNAL_H_
 
 #include "eeprom.h"
 
@@ -14,8 +14,30 @@
 #define SECTOR_LAST_BYTE 511
 #define BAD_CLUSTER 0x0FFFFFF7
 #define END_OF_CLUSTERCHAIN 0x0FFFFFF8
+#define FREE_CLUSTER 0
 
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
+
+typedef struct __attribute__(( packed )) _dir_entry {
+    uint8_t name[11];
+    uint8_t attr;
+    uint8_t NTRes;
+    uint8_t crt_time_tenth;
+    uint16_t crt_time;
+    uint16_t crt_date;
+    uint16_t last_access_date;
+    uint16_t fst_clus_hi;
+    uint16_t wrt_time;
+    uint16_t wrt_date;
+    uint16_t fst_clus_lo;
+    uint32_t file_size;
+} dir_ent;
+
+typedef union _DIR_ENTRY {
+    dir_ent fields;
+    uint8_t bytes[sizeof(dir_ent)];
+} DIR_ENTRY;
+
 
 typedef struct __attribute__(( packed )) bios_param_block {
     uint16_t bytes_per_sec;
@@ -39,7 +61,7 @@ typedef struct __attribute__(( packed )) bios_param_block {
     uint8_t reserved[12];
 } BPB;
 
-struct __attribute__(( packed )) boot_sector_parameters {
+typedef struct __attribute__(( packed )) boot_sector_parameters {
     uint8_t jmp_boot[3];
     uint8_t oem_name[8];
     BPB bpb;
@@ -49,34 +71,19 @@ struct __attribute__(( packed )) boot_sector_parameters {
     uint32_t vol_id;
     uint8_t vol_lab[11];
     uint8_t fil_sys_type[8];
-};
-
-typedef struct __attribute__(( packed )) _dir_entry {
-    uint8_t name[11];
-    uint8_t attr;
-    uint8_t NTRes;
-    uint8_t crt_time_tenth;
-    uint16_t crt_time;
-    uint16_t crt_date;
-    uint16_t last_access_date;
-    uint16_t fst_clus_hi;
-    uint16_t wrt_time;
-    uint16_t wrt_date;
-    uint16_t fst_clus_lo;
-    uint32_t file_size;
-} DIR_ENTRY;
+} bootsec_params;
 
 typedef union boot_sector {
-    struct boot_sector_parameters params;
+    bootsec_params params;
     uint8_t bytes[SECTOR_SZ];
 } BOOT_SECTOR;
 
 typedef struct {
     struct EEPROM *mem;
-    BOOT_SECTOR params;
+    BOOT_SECTOR bootsec;
     uint8_t valid;
     uint8_t write_cnt;
 } FAT32_FS;
 
-#endif /* _FAT32_INTERNAL_ */
+#endif /* _FAT32_INTERNAL_H_ */
 
