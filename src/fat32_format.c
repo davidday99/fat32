@@ -2,6 +2,8 @@
 #include <string.h>
 #include "eeprom.h"
 #include "fat32_internal.h"
+#include "fat32_fat.h"
+#include "fat32_data.h"
 
 static BOOT_SECTOR *init_bpb(struct EEPROM *mem, BOOT_SECTOR *sec);
 static void init_fat_structure(struct EEPROM *mem, BOOT_SECTOR *sec);
@@ -50,24 +52,6 @@ static BOOT_SECTOR *init_bpb(struct EEPROM *mem, BOOT_SECTOR *sec) {
     }
 
     return sec;
-}
-
-static uint32_t get_fat_structure_base_addr(BOOT_SECTOR *sec) {
-    uint32_t sectors = sec->params.bpb.reserved_sec_cnt;
-    uint8_t remaining_sectors = sec->params.bpb.reserved_sec_cnt % sec->params.bpb.sec_per_clus;
-    if (remaining_sectors != 0) {
-        sectors += sec->params.bpb.sec_per_clus - remaining_sectors;
-    } 
-    uint32_t fat_base = sectors*sec->params.bpb.bytes_per_sec;
-    return fat_base;
-}
-
-static uint32_t get_data_region_base_addr(BOOT_SECTOR *sec) {
-    uint32_t fat_base_addr = get_fat_structure_base_addr(sec);
-    uint32_t base_addr = fat_base_addr + (sec->params.bpb.num_fats*
-                                             sec->params.bpb.fat_sz_32*
-                                             sec->params.bpb.bytes_per_sec); 
-    return base_addr;
 }
 
 static void init_fat_structure(struct EEPROM *mem, BOOT_SECTOR *sec) {
