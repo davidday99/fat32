@@ -18,18 +18,18 @@ uint32_t fs_write_cluster(FAT32_FS *fs,
                             uint16_t clus_off, 
                             const void *buf,
                             uint16_t count) {
-    uint32_t bytes_written = 0;
+    uint32_t i = 0;
     if (clus_off + count > CLUSTER_SIZE(fs) || 
-        clus >= fs->clus_count)
-        return bytes_written;
+        clus >= fs->clus_count ||
+        clus < fs->bootsec.params.bpb.root_clus)
+        return i;
     uint32_t d_base = get_data_base_addr(fs);
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
-    for (uint16_t i = 0; i < count; i++) {
-        fs->mem->write8(((uint8_t *) buf)[i], addr++); 
-        bytes_written++;
+    while (i < count) {
+        fs->mem->write8(((uint8_t *) buf)[i++], addr++); 
     }
-    return bytes_written;
+    return i;
 }
 
 uint32_t fs_read_cluster(FAT32_FS *fs, 
@@ -37,19 +37,18 @@ uint32_t fs_read_cluster(FAT32_FS *fs,
                             uint16_t clus_off,
                             void *buf,
                             uint32_t count) {
-    uint32_t bytes_read = 0;
+    uint32_t i = 0;
     if (clus_off + count > CLUSTER_SIZE(fs) || 
-        clus >= fs->clus_count)
-        return bytes_read;
+        clus >= fs->clus_count ||
+        clus < fs->bootsec.params.bpb.root_clus)
+        return i;
     uint32_t d_base = get_data_base_addr(fs);
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
-    for (uint16_t i = 0; i < count; i++) {
-        ((uint8_t *) buf)[i] = fs->mem->read8(addr++);
-        bytes_read++;
+    while (i < count) {
+        ((uint8_t *) buf)[i++] = fs->mem->read8(addr++);
     }
-    return bytes_read;
-
+    return i;
 }
 
 void fs_write_fat_entry(FAT32_FS *fs,
