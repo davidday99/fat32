@@ -4,11 +4,7 @@
 #include "fat32_fs.h"
 #include "fat32_conf.h"
 
-#define CLUSTER_SIZE(fs) (fs->bootsec.params.bpb.sec_per_clus* \
-                            fs->bootsec.params.bpb.bytes_per_sec)
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
-
-
 
 static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum);
 static uint32_t get_data_base_addr(FAT32_FS *fs);
@@ -72,6 +68,17 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
     uint32_t offset = n*sizeof(uint32_t);
     uint32_t entry = fs->mem->read32(addr + offset);
     return entry;
+}
+
+uint32_t fs_get_free_fat_entry(FAT32_FS *fs) {
+    uint32_t fat_entry_cnt = fs->clus_count;
+    uint32_t i = fs->bootsec.params.bpb.root_clus; 
+    while (i < fat_entry_cnt) {
+        uint32_t entry = fs_read_fat_entry(fs, 0, i);
+        if (entry == 0)
+            return i; 
+    }
+    return 0;
 }
 
 void fs_format(FAT32_FS *fs) {
