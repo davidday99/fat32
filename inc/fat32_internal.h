@@ -1,6 +1,7 @@
 #ifndef _FAT32_INTERNAL_H_
 #define _FAT32_INTERNAL_H_
 
+#include <stdint.h>
 #include "eeprom.h"
 
 #define MEDIA_REMOVABLE 0xF8
@@ -82,7 +83,8 @@ typedef struct {
     struct EEPROM *mem;
     BOOT_SECTOR bootsec;
     uint8_t valid;
-    uint8_t write_cnt;
+    uint16_t clus_sz;
+    uint32_t clus_count;
 } FAT32_FS;
 
 #endif /* _FAT32_INTERNAL_H_ */

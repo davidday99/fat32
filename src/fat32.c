@@ -3,34 +3,23 @@
 #include "eeprom.h"
 #include "fat32_internal.h"
 #include "fat32_file.h"
-#include "fat32_format.h"
 #include "fat32.h"
 
-static FAT32_FS ACTIVE_FS;
-
-void format_fat32(struct EEPROM *mem) {
-    _format_fat32(mem);
-}
-
-void init_fat32_fs(struct EEPROM *mem) {
-    for (uint16_t i = 0; i < SECTOR_SZ; i++) {
-        ACTIVE_FS.bootsec.bytes[i] = mem->read8(i);
-    }
-    ACTIVE_FS.mem = mem;
-    ACTIVE_FS.valid = VERIFY_SECTORSIG(ACTIVE_FS.bootsec.bytes[510], ACTIVE_FS.bootsec.bytes[511]);
-}
-
-void deinit_fat32_fs(void) {
+void format_fat32(FAT32_FS *fs) {
     return;
 }
 
-uint8_t fat32_fs_valid(void) {
-    return ACTIVE_FS.valid == 1;
+void init_fat32_fs(FAT32_FS *fs) {
+    return;
+}    
+
+void deinit_fat32_fs(FAT32_FS *fs) {
+    return;
 }
 
 FAT32_FILE *fat32_open(char *path, FAT32_FILE *fptr) {
-    return fat32_fs_valid() ? _fat32_open(&ACTIVE_FS, path, fptr) : NULL;
-}
+    return 0;
+} 
 
 void fat32_close(FAT32_FILE *fptr) {
     return;

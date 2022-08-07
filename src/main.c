@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include "eeprom.h"
 #include "fat32.h"
+#include "fat32_internal.h"
+#include "fat32_fs.h"
 
 #define MEM_SZ 0x20000  // 128 MB
 
@@ -69,10 +71,12 @@ int main() {
         .size = size_mem
     };
     FAT32_FILE f;
+    FAT32_FS fs;
+    fs.mem = &mem;
 
-    format_fat32(&mem);
-    init_fat32_fs(&mem);
-    printf("fs %s\n", fat32_fs_valid() ? "valid" : "invalid");
+    fs_format(&fs);
+    fs_init(&fs);
+    printf("fs %s\n", fs.valid ? "valid" : "invalid");
     fat32_open("/bin/dir1/dir2/foo.c", &f);
     return 0;
 }
