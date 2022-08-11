@@ -71,11 +71,12 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
 
 uint32_t fs_get_free_fat_entry(FAT32_FS *fs) {
     uint32_t fat_entry_cnt = fs->clus_count;
-    uint32_t i = fs->bootsec.params.bpb.root_clus; 
+    uint32_t i = 0; 
     while (i < fat_entry_cnt) {
         uint32_t entry = fs_read_fat_entry(fs, 0, i);
         if (entry == 0)
             return i; 
+        i++;
     }
     return 0;
 }
@@ -168,6 +169,10 @@ static void init_fat_structure(FAT32_FS *fs, uint8_t fatnum) {
     for (uint32_t addr = fat_base; addr < fat_base + fat_size; addr += 4) {
 	    fs->mem->write32(0, addr);     
     }
+
+    fs_write_fat_entry(fs, 0, 0, fs->bootsec.params.bpb.media);
+    fs_write_fat_entry(fs, 0, 1, CLEAN_SHUTDOWN_BITMASK);
+    fs_write_fat_entry(fs, 0, fs->bootsec.params.bpb.root_clus, END_OF_CLUSTERCHAIN);
 }
 
 static void clear_data_region(FAT32_FS *fs) {
