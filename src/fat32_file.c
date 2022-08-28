@@ -214,6 +214,7 @@ static FAT32_FILE *get_file_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE 
     uint32_t entry_clus_offset = dptr->clus_offset;
     for (read_dir_entry(dptr, &e); e.bytes[0] != 0; read_dir_entry(dptr, &e)) {
         if (memcmp(e.fields.name, dir_entry_name, FAT32_MAX_FILENAME_LEN) == 0) {
+            fptr->_fs = dptr->_fs;
             fptr = get_fptr_from_dir_entry(&e, entry_clus, entry_clus_offset, fptr);
             success = fptr; 
             break;
