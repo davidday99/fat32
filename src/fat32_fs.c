@@ -13,6 +13,7 @@ static uint32_t get_data_offset(FAT32_FS *fs, uint32_t clus);
 static void init_bpb(FAT32_FS *fs);
 static void init_fat_structure(FAT32_FS *fs, uint8_t fatnum);
 static void clear_data_region(FAT32_FS *fs);
+static uint32_t get_data_sector_count(FAT32_FS *fs);
  
 uint32_t fs_write_cluster(FAT32_FS *fs,
                             uint32_t clus,
@@ -96,6 +97,7 @@ uint32_t fs_init(FAT32_FS *fs) {
     }
     fs->valid = VERIFY_SECTORSIG(fs->bootsec.bytes[510], fs->bootsec.bytes[511]);
     uint32_t status = fs_read_fat_entry(fs, 0, 1);
+    fs->clus_count = get_data_sector_count(fs) / fs->bootsec.params.bpb.sec_per_clus;
     return status;
 }
 
@@ -177,14 +179,18 @@ static void init_fat_structure(FAT32_FS *fs, uint8_t fatnum) {
 }
 
 static void clear_data_region(FAT32_FS *fs) {
-    uint32_t totsec = fs->bootsec.params.bpb.tot_sec_32;
-    uint32_t datasec = totsec - (fs->bootsec.params.bpb.reserved_sec_cnt + (
-                        fs->bootsec.params.bpb.num_fats*fs->bootsec.params.bpb.fat_sz_32));
+    uint32_t datasec = get_data_sector_count(fs); 
     uint32_t datasz= datasec*fs->bootsec.params.bpb.bytes_per_sec;
     uint32_t base_addr = get_data_base_addr(fs);
     for (uint32_t addr = base_addr; addr < base_addr + datasz; addr += 4) {
         write_drv32(fs->drv, 0, addr);
-    }
-    
+    } 
+}
+
+static uint32_t get_data_sector_count(FAT32_FS *fs) {
+    uint32_t totsec = fs->bootsec.params.bpb.tot_sec_32;
+    uint32_t datasec = totsec - (fs->bootsec.params.bpb.reserved_sec_cnt + (
+                        fs->bootsec.params.bpb.num_fats*fs->bootsec.params.bpb.fat_sz_32));
+    return datasec;
 }
 

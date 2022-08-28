@@ -119,7 +119,7 @@ int test_file_api(void) {
 
 int main() {
     test_fs();
-    test_file_api();
+    // test_file_api();
     printf("tests complete\n");
     return 0;
 }
