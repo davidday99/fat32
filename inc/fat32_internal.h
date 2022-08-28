@@ -2,7 +2,7 @@
 #define _FAT32_INTERNAL_H_
 
 #include <stdint.h>
-#include "eeprom.h"
+#include "drive.h"
 
 #define MEDIA_REMOVABLE 0xF8
 #define MEDIA_NONREMOVABLE 0xF0
@@ -82,7 +82,7 @@ typedef union boot_sector {
 } BOOT_SECTOR;
 
 typedef struct {
-    struct EEPROM *mem;
+    DRIVE *mem;
     BOOT_SECTOR bootsec;
     uint8_t valid;
     uint16_t clus_sz;

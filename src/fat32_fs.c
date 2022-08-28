@@ -3,6 +3,7 @@
 #include "fat32_internal.h" 
 #include "fat32_fs.h"
 #include "fat32_conf.h"
+#include "drive.h"
 
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
 
@@ -27,7 +28,7 @@ uint32_t fs_write_cluster(FAT32_FS *fs,
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
     while (i < count) {
-        fs->mem->write8(((uint8_t *) buf)[i++], addr++); 
+        write_mem8(fs->mem, ((uint8_t *) buf)[i++], addr++);
     }
     return i;
 }
@@ -46,7 +47,7 @@ uint32_t fs_read_cluster(FAT32_FS *fs,
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
     while (i < count) {
-        ((uint8_t *) buf)[i++] = fs->mem->read8(addr++);
+        ((uint8_t *) buf)[i++] = read_mem8(fs->mem, addr++);
     }
     return i;
 }
@@ -57,7 +58,7 @@ void fs_write_fat_entry(FAT32_FS *fs,
                         uint32_t v) {
     uint32_t addr = get_fat_base_addr(fs, fatnum); 
     uint32_t offset = n*sizeof(uint32_t);
-    fs->mem->write32(v, addr + offset);
+    write_mem32(fs->mem, v, addr + offset);
 }
 
 uint32_t fs_read_fat_entry(FAT32_FS *fs,
@@ -65,7 +66,7 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
                             uint32_t n) {
     uint32_t addr = get_fat_base_addr(fs, fatnum);
     uint32_t offset = n*sizeof(uint32_t);
-    uint32_t entry = fs->mem->read32(addr + offset);
+    uint32_t entry = read_mem32(fs->mem, addr + offset);
     return entry;
 }
 
@@ -91,7 +92,7 @@ void fs_format(FAT32_FS *fs) {
 
 uint32_t fs_init(FAT32_FS *fs) {
     for (uint16_t i = 0; i < SECTOR_SZ; i++) {
-        fs->bootsec.bytes[i] = fs->mem->read8(i);
+        fs->bootsec.bytes[i] = read_mem8(fs->mem, i);
     }
     fs->valid = VERIFY_SECTORSIG(fs->bootsec.bytes[510], fs->bootsec.bytes[511]);
     uint32_t status = fs_read_fat_entry(fs, 0, 1);
@@ -158,7 +159,7 @@ static void init_bpb(FAT32_FS *fs) {
     fs->bootsec.bytes[SECTOR_LAST_BYTE] = SECTORSIG_HI;
 
     for (uint16_t addr = 0; addr < sizeof(BOOT_SECTOR); addr++) {
-	    fs->mem->write8(fs->bootsec.bytes[addr], addr);
+	    write_mem8(fs->mem, fs->bootsec.bytes[addr], addr);
     }
 }
 
@@ -167,7 +168,7 @@ static void init_fat_structure(FAT32_FS *fs, uint8_t fatnum) {
     uint16_t fat_size = fs->bootsec.params.bpb.fat_sz_32*fs->bootsec.params.bpb.bytes_per_sec;
 
     for (uint32_t addr = fat_base; addr < fat_base + fat_size; addr += 4) {
-	    fs->mem->write32(0, addr);     
+	    write_mem32(fs->mem, 0, addr);     
     }
 
     fs_write_fat_entry(fs, 0, 0, fs->bootsec.params.bpb.media);
@@ -182,7 +183,7 @@ static void clear_data_region(FAT32_FS *fs) {
     uint32_t datasz= datasec*fs->bootsec.params.bpb.bytes_per_sec;
     uint32_t base_addr = get_data_base_addr(fs);
     for (uint32_t addr = base_addr; addr < base_addr + datasz; addr += 4) {
-        fs->mem->write32(0, addr);
+        write_mem32(fs->mem, 0, addr);
     }
     
 }
