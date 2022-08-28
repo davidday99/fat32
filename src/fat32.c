@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <string.h>
-#include "eeprom.h"
 #include "fat32_internal.h"
 #include "fat32_file.h"
 #include "fat32.h"

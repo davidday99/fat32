@@ -82,7 +82,7 @@ typedef union boot_sector {
 } BOOT_SECTOR;
 
 typedef struct {
-    DRIVE *mem;
+    DRIVE *drv;
     BOOT_SECTOR bootsec;
     uint8_t valid;
     uint16_t clus_sz;

@@ -67,19 +67,19 @@ static uint32_t mock_size_mem() {
 
 #pragma GCC pop_options
 
-DRIVE mem = {
-    .read8 = mock_read_mem8,
-    .read16 = mock_read_mem16,
-    .read32 = mock_read_mem32,
-    .write8 = mock_write_mem8,
-    .write16 = mock_write_mem16,
-    .write32 = mock_write_mem32,
-    .erase = mock_erase_mem,
-    .size = mock_size_mem
+DRIVE drv = {
+    ._read8 = mock_read_mem8,
+    ._read16 = mock_read_mem16,
+    ._read32 = mock_read_mem32,
+    ._write8 = mock_write_mem8,
+    ._write16 = mock_write_mem16,
+    ._write32 = mock_write_mem32,
+    ._erase = mock_erase_mem,
+    ._size = mock_size_mem
 };
 FAT32_FILE f;
 FAT32_FS fs = {
-    .mem = &mem
+    .drv = &drv
 };
 
 
