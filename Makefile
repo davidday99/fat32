@@ -15,7 +15,7 @@ RM = rm -rf
 MKDIR = @mkdir -p $(@D)
 CFLAGS = -I$(INC) -MMD -MP -Wall
 DEBUGFLAGS = -g3
-RELEASEFLAGS = -O2
+RELEASEFLAGS = -Os
 
 release: $(ODIR)/release/$(ONAME)
 
@@ -37,11 +37,11 @@ $(OBJ)/debug/%.o: $(SRC)/%.c
 $(ODIR)/release/$(ONAME): $(RELEASEOBJS)
 	$(MKDIR)
 	$(CC) -o $(ODIR)/release/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) 
+	ctags -R *
 
 $(OBJ)/release/%.o: $(SRC)/%.c
 	$(MKDIR)   
-	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) -g
-	ctags -R *
+	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
 
 -include $(DEBUGOBJS:.o=.d)
 -include $(RELEASEOBJS:.o=.d)
