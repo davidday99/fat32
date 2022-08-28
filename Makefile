@@ -15,13 +15,11 @@ RM = rm -rf
 MKDIR = @mkdir -p $(@D)
 CFLAGS = -I$(INC) -MMD -MP -Wall
 DEBUGFLAGS = -g3
-RELEASEFLAGS = -Os
+RELEASEFLAGS = -O2
 
 release: $(ODIR)/release/$(ONAME)
- 
 
 debug: $(ODIR)/debug/$(ONAME)
-	
 
 clean:
 	-$(RM) $(OBJ)
@@ -30,6 +28,7 @@ clean:
 $(ODIR)/debug/$(ONAME): $(DEBUGOBJS)
 	$(MKDIR)
 	$(CC) -o $(ODIR)/debug/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) 
+	ctags -R *
 
 $(OBJ)/debug/%.o: $(SRC)/%.c
 	$(MKDIR)   
@@ -41,7 +40,8 @@ $(ODIR)/release/$(ONAME): $(RELEASEOBJS)
 
 $(OBJ)/release/%.o: $(SRC)/%.c
 	$(MKDIR)   
-	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
+	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) -g
+	ctags -R *
 
 -include $(DEBUGOBJS:.o=.d)
 -include $(RELEASEOBJS:.o=.d)
