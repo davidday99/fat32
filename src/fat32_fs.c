@@ -6,6 +6,10 @@
 #include "drive.h"
 
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
+#define INVALID_OFFSET(clus, offset) (clus_off >= CLUSTER_SIZE(fs) ||\
+                                        clus >= fs->clus_count ||\
+                                        clus < fs->bootsec.params.bpb.root_clus)
+         
 
 static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum);
 static uint32_t get_data_base_addr(FAT32_FS *fs);
@@ -21,14 +25,13 @@ uint32_t fs_write_cluster(FAT32_FS *fs,
                             const void *buf,
                             uint16_t count) {
     uint32_t i = 0;
-    if (clus_off + count > CLUSTER_SIZE(fs) || 
-        clus >= fs->clus_count ||
-        clus < fs->bootsec.params.bpb.root_clus)
+    if (INVALID_OFFSET(clus, clus_off))
         return i;
     uint32_t d_base = get_data_base_addr(fs);
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
-    while (i < count) {
+    uint32_t max_write_count = CLUSTER_SIZE(fs) - clus_off;
+    while (i < count && i < max_write_count) {
         write_drv8(fs->drv, ((uint8_t *) buf)[i++], addr++);
     }
     return i;
@@ -40,14 +43,13 @@ uint32_t fs_read_cluster(FAT32_FS *fs,
                             void *buf,
                             uint32_t count) {
     uint32_t i = 0;
-    if (clus_off + count > CLUSTER_SIZE(fs) || 
-        clus >= fs->clus_count ||
-        clus < fs->bootsec.params.bpb.root_clus)
+    if (INVALID_OFFSET(clus, off))
         return i;
     uint32_t d_base = get_data_base_addr(fs);
     uint32_t offset = get_data_offset(fs, clus); 
     uint32_t addr = d_base + offset + clus_off;
-    while (i < count) {
+    uint32_t max_write_count = CLUSTER_SIZE(fs) - clus_off;
+    while (i < count && i < max_write_count) {
         ((uint8_t *) buf)[i++] = read_drv8(fs->drv, addr++);
     }
     return i;
