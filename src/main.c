@@ -93,13 +93,17 @@ int test_fs(void) {
     fs_init(&fs);
     printf("fs %s\n", fs.valid ? "valid" : "invalid");
     
-    assert(fs_write_cluster(&fs, 2, 0, wbuf, 513) == 0);        
-    assert(fs_write_cluster(&fs, 0, 0, wbuf, 512) == 0);        
-    assert(fs_write_cluster(&fs, 2, 1, wbuf, 512) == 0);
-    assert(fs_write_cluster(&fs, 2, 1, wbuf, 511) == 511);
+    assert(fs_write_cluster(&fs, 2, 0, wbuf, 513) == 512);  // write up to size of cluster       
+    assert(fs_write_cluster(&fs, 2, 1, wbuf, 512) == 511);  // non-zero offset
+    assert(fs_write_cluster(&fs, 2, 511, wbuf, 512) == 1);  // near end of cluster boundary
+    assert(fs_write_cluster(&fs, 2, 512, wbuf, 512) == 0);  // past end of cluster 
+    assert(fs_write_cluster(&fs, 0, 0, wbuf, 512) == 0);  // disallow writes to cluster before root cluster       
+    assert(fs_write_cluster(&fs, 2, 1, wbuf, 511) == 511);  // write full amount with non-zero offset
+    assert(fs_write_cluster(&fs, 2, 0, wbuf, 512) == 512);  // write full amount with zero offset
 
-    fs_read_cluster(&fs, 2, 1, rbuf, 511);
-    assert(memcmp(rbuf, wbuf, 511) == 0);
+    fs_read_cluster(&fs, 2, 0, rbuf, 512);
+    assert(memcmp(rbuf, wbuf, 512) == 0);
+    assert(fs_read_cluster(&fs, 0, 0, rbuf, 512) == 0); 
 
     fs_write_fat_entry(&fs, 0, 0, 0xABCDEF01);
     uint32_t entry = fs_read_fat_entry(&fs, 0, 0);
