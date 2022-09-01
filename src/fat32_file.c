@@ -26,6 +26,9 @@
 #define MIN(x, y) (x <= y ? x : y)
 #define MAX(x, y) (x >= y ? x : y)
 
+// Doesn't seem to be declared in the header file, so declaring here.
+char *strtok_r(char *str, const char *delim, char **saveptr);
+
 static uint8_t get_next_cluster(FAT32_FILE *fptr);
 static FAT32_FILE *get_root_fptr(FAT32_FS *fs, FAT32_FILE *fptr);
 static FAT32_FILE *seek_dir_open_entry(FAT32_FILE *dptr);
@@ -95,10 +98,10 @@ FAT32_FILE *file_open(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
     strcpy(buf, path);
     FAT32_FILE curr;
     FAT32_FILE *curr_ptr = get_root_fptr(fs, &curr);
-    char *part;
-    for (part = strtok_r(buf, "/", &saveptr); part !=  NULL; part = strtok_r(NULL, "/", &saveptr)) {
-        printf("%s\n", part);
-        if ((curr_ptr = get_file_inside_dir(curr_ptr, part, curr_ptr)) == NULL || !curr_ptr->is_dir) {
+    char *seg;
+    for (seg = strtok_r(buf, "/", &saveptr); seg !=  NULL; seg = strtok_r(NULL, "/", &saveptr)) {
+        printf("%s\n", seg);
+        if ((curr_ptr = get_file_inside_dir(curr_ptr, seg, curr_ptr)) == NULL || !curr_ptr->is_dir) {
                break; 
         }
     }
@@ -138,9 +141,9 @@ static FAT32_FILE *get_root_fptr(FAT32_FS *fs, FAT32_FILE *fptr) {
     fptr->entry_clus = 0;
     fptr->entry_clus_offset = 0;
     fptr->is_dir = 1;
-    strcpy(fptr->name, "/");
     fptr->offset = 0;
     fptr->_fs = fs; 
+    strcpy(fptr->name, "/");
     return fptr; 
 } 
 
