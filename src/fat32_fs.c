@@ -5,6 +5,8 @@
 #include "fat32_conf.h"
 #include "drive.h"
 
+#define CLUSTER_SIZE(fs) (fs->bootsec.params.bpb.sec_per_clus* \
+                            fs->bootsec.params.bpb.bytes_per_sec)
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
 #define INVALID_OFFSET(clus, offset) (clus_off >= CLUSTER_SIZE(fs) ||\
                                         clus >= fs->clus_count ||\
@@ -112,6 +114,11 @@ void fs_deinit(FAT32_FS *fs) {
     uint32_t new_status = status | 0x08000000;
     fs_write_fat_entry(fs, 0, 1, new_status);
     fs->valid = 0;
+}
+
+uint16_t fs_get_cluster_size(FAT32_FS *fs) {
+    return fs->bootsec.params.bpb.sec_per_clus*
+            fs->bootsec.params.bpb.bytes_per_sec;
 }
 
 static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum) {
