@@ -9,7 +9,8 @@
 #define INVALID_OFFSET(clus, offset) (clus_off >= CLUSTER_SIZE(fs) ||\
                                         clus >= fs->clus_count ||\
                                         clus < fs->bootsec.params.bpb.root_clus)
-         
+#define FAT32_CLUSTER_ENTRY_MASK (0x0FFFFFFF)         
+#define FAT32_CLUSTER_ENTRY_RESERVED_MASK (~FAT32_CLUSTER_ENTRY_MASK)
 
 static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum);
 static uint32_t get_data_base_addr(FAT32_FS *fs);
@@ -61,7 +62,10 @@ void fs_write_fat_entry(FAT32_FS *fs,
                         uint32_t v) {
     uint32_t addr = get_fat_base_addr(fs, fatnum); 
     uint32_t offset = n*sizeof(uint32_t);
-    write_drive32(fs->drv, v, addr + offset);
+    uint32_t high_nibble = read_drive32(fs->drv, addr + offset) & 
+                            FAT32_CLUSTER_ENTRY_RESERVED_MASK;
+    uint32_t entry = (v & FAT32_CLUSTER_ENTRY_MASK) | high_nibble;
+    write_drive32(fs->drv, entry, addr + offset);
 }
 
 uint32_t fs_read_fat_entry(FAT32_FS *fs,
@@ -69,7 +73,7 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
                             uint32_t n) {
     uint32_t addr = get_fat_base_addr(fs, fatnum);
     uint32_t offset = n*sizeof(uint32_t);
-    uint32_t entry = read_drive32(fs->drv, addr + offset);
+    uint32_t entry = read_drive32(fs->drv, addr + offset) & FAT32_CLUSTER_ENTRY_MASK;
     return entry;
 }
 

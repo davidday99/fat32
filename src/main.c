@@ -104,10 +104,11 @@ int test_fs(void) {
     fs_read_cluster(&fs, 2, 0, rbuf, 512);
     assert(memcmp(rbuf, wbuf, 512) == 0);
     assert(fs_read_cluster(&fs, 0, 0, rbuf, 512) == 0); 
+    assert(fs_read_cluster(&fs, 1, 0, rbuf, 512) == 0); 
 
     fs_write_fat_entry(&fs, 0, 0, 0xABCDEF01);
     uint32_t entry = fs_read_fat_entry(&fs, 0, 0);
-    assert(entry == 0xABCDEF01); 
+    assert(entry == 0x0BCDEF01); 
     return 1;
 }
 
