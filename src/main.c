@@ -116,9 +116,11 @@ int test_fs(void) {
     assert(fs_read_cluster(&fs, 0, 0, rbuf, 512) == 0); 
     assert(fs_read_cluster(&fs, 1, 0, rbuf, 512) == 0); 
 
+    uint32_t tmp = fs_read_fat_entry(&fs, 0, 0);
     fs_write_fat_entry(&fs, 0, 0, 0xABCDEF01);
     uint32_t entry = fs_read_fat_entry(&fs, 0, 0);
     assert(entry == 0x0BCDEF01); 
+    fs_write_fat_entry(&fs, 0, 0, tmp);
     return 1;
 }
 
@@ -129,9 +131,17 @@ int test_file_api(void) {
     for (int i = 0; i < 1024; i++) wbuf[i] = i;
 
     assert(file_write(&f, wbuf, 20) == 20);
+    assert(f.offset == 20);
+    assert(f.size == 20);
     f.offset = 0;
     assert(file_read(&f, rbuf, 20) == 20);
     assert(memcmp(rbuf, wbuf, 20) == 0);
+    assert(f.offset == 20);
+    assert(f.size == 20);
+    f.offset = 0;
+    assert(file_write(&f, wbuf, 513) == 513);
+    assert(f.clus_curr == 3);
+    assert(f.offset == 513);
     return 1;
 }
 

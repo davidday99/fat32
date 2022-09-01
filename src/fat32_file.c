@@ -35,32 +35,6 @@ static FAT32_FILE *get_fptr_from_dir_entry(DIR_ENTRY *e, uint32_t clus, uint32_t
 static char *filename_to_dir_entry_name(const char *fname, char *buf);
 static char *dir_entry_name_to_filename(const char *entry_name, char *buf);
 
-uint32_t file_write(FAT32_FILE *fptr, const void *buf, uint32_t count) {
-    uint16_t clus_sz = fs_get_cluster_size(fptr->_fs);
-    uint16_t clus_off = fptr->offset % clus_sz; 
-    uint32_t i = 0;
-    while (i < count) { 
-        if (clus_off >= clus_sz) {
-            if (get_next_cluster(fptr) == 0)
-                break;
-            else
-                clus_off = 0;
-        }
-        uint32_t write_sz = MIN(clus_sz - clus_off, count - i); 
-        fs_write_cluster(fptr->_fs,
-                            fptr->clus_curr,
-                            clus_off,
-                            buf + i,
-                            write_sz);      
-        fptr->offset += write_sz;
-        clus_off += write_sz;
-        i += write_sz;
-        if (fptr->offset >= fptr->size)
-            fptr->size += write_sz;
-    }
-    return i;
-}
-
 uint32_t file_read(FAT32_FILE *fptr, void *buf, uint32_t count) {
     uint32_t read_max = MIN(count, fptr->size - fptr->offset);
     uint16_t clus_sz = fs_get_cluster_size(fptr->_fs);
@@ -79,11 +53,38 @@ uint32_t file_read(FAT32_FILE *fptr, void *buf, uint32_t count) {
                         clus_off,
                         buf + i,
                         read_sz);      
+        
+        if (fptr->offset >= fptr->size)
+            fptr->size += read_sz;
         fptr->offset += read_sz;
         clus_off += read_sz;
         i += read_sz;
+    }
+    return i;
+}
+
+uint32_t file_write(FAT32_FILE *fptr, const void *buf, uint32_t count) {
+    uint16_t clus_sz = fs_get_cluster_size(fptr->_fs);
+    uint16_t clus_off = fptr->offset % clus_sz; 
+    uint32_t i = 0;
+    while (i < count) { 
+        if (clus_off >= clus_sz) {
+            if (get_next_cluster(fptr) == 0)
+                break;
+            else
+                clus_off = 0;
+        }
+        uint32_t write_sz = MIN(clus_sz - clus_off, count - i); 
+        fs_write_cluster(fptr->_fs,
+                            fptr->clus_curr,
+                            clus_off,
+                            buf + i,
+                            write_sz);      
         if (fptr->offset >= fptr->size)
-            fptr->size += read_sz;
+            fptr->size += write_sz;
+        fptr->offset += write_sz;
+        clus_off += write_sz;
+        i += write_sz;
     }
     return i;
 }
