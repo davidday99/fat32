@@ -121,7 +121,7 @@ uint16_t fs_get_cluster_size(FAT32_FS *fs) {
             fs->bootsec.params.bpb.bytes_per_sec;
 }
 
-static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum) {
+__attribute__(( always_inline )) static inline uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum) {
     uint32_t sectors = fs->bootsec.params.bpb.reserved_sec_cnt + 
                         fs->bootsec.params.bpb.fat_sz_32*fatnum;
     uint32_t f_base = sectors*fs->bootsec.params.bpb.bytes_per_sec;
@@ -129,7 +129,7 @@ static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum) {
 }
 
 
-static uint32_t get_data_base_addr(FAT32_FS *fs) {
+__attribute__(( always_inline )) static inline uint32_t get_data_base_addr(FAT32_FS *fs) {
     uint32_t fat_base_addr = get_fat_base_addr(fs, 0);
     uint32_t d_base = fat_base_addr + (fs->bootsec.params.bpb.num_fats*
                                         fs->bootsec.params.bpb.fat_sz_32*
@@ -137,7 +137,7 @@ static uint32_t get_data_base_addr(FAT32_FS *fs) {
     return d_base;
 }
 
-static uint32_t get_data_offset(FAT32_FS *fs, uint32_t clus) {
+__attribute__(( always_inline )) static inline uint32_t get_data_offset(FAT32_FS *fs, uint32_t clus) {
     if (clus < fs->bootsec.params.bpb.root_clus)
         return 0;
     uint32_t offset = CLUSTER_SIZE(fs)*(clus - fs->bootsec.params.bpb.root_clus);    
