@@ -18,10 +18,8 @@ DEBUGFLAGS = -g3
 RELEASEFLAGS = -Os
 
 release: $(ODIR)/release/$(ONAME)
- 
 
 debug: $(ODIR)/debug/$(ONAME)
-	
 
 clean:
 	-$(RM) $(OBJ)
@@ -30,6 +28,7 @@ clean:
 $(ODIR)/debug/$(ONAME): $(DEBUGOBJS)
 	$(MKDIR)
 	$(CC) -o $(ODIR)/debug/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) 
+	ctags -R *
 
 $(OBJ)/debug/%.o: $(SRC)/%.c
 	$(MKDIR)   
@@ -38,6 +37,7 @@ $(OBJ)/debug/%.o: $(SRC)/%.c
 $(ODIR)/release/$(ONAME): $(RELEASEOBJS)
 	$(MKDIR)
 	$(CC) -o $(ODIR)/release/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) 
+	ctags -R *
 
 $(OBJ)/release/%.o: $(SRC)/%.c
 	$(MKDIR)   

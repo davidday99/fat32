@@ -1,7 +1,8 @@
 #ifndef _FAT32_INTERNAL_H_
 #define _FAT32_INTERNAL_H_
 
-#include "eeprom.h"
+#include <stdint.h>
+#include "drive.h"
 
 #define MEDIA_REMOVABLE 0xF8
 #define MEDIA_NONREMOVABLE 0xF0
@@ -15,6 +16,8 @@
 #define BAD_CLUSTER 0x0FFFFFF7
 #define END_OF_CLUSTERCHAIN 0x0FFFFFF8
 #define FREE_CLUSTER 0
+#define CLEAN_SHUTDOWN_BITMASK 0x08000000
+#define HARD_ERROR_BITMASK 0x04000000
 
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
 
@@ -79,10 +82,11 @@ typedef union boot_sector {
 } BOOT_SECTOR;
 
 typedef struct {
-    struct EEPROM *mem;
+    DRIVE *drv;
     BOOT_SECTOR bootsec;
     uint8_t valid;
-    uint8_t write_cnt;
+    uint16_t clus_sz;
+    uint32_t clus_count;
 } FAT32_FS;
 
 #endif /* _FAT32_INTERNAL_H_ */
