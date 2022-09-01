@@ -3,9 +3,6 @@
 
 #include "fat32_internal.h"
 
-#define CLUSTER_SIZE(fs) (fs->bootsec.params.bpb.sec_per_clus* \
-                            fs->bootsec.params.bpb.bytes_per_sec)
-
 uint32_t fs_write_cluster(FAT32_FS *fs,
                             uint32_t clus,
                             uint16_t clus_off, 
@@ -35,6 +32,8 @@ void fs_format(FAT32_FS *fs);
 uint32_t fs_init(FAT32_FS *fs);
 
 void fs_deinit(FAT32_FS *fs);  
+
+uint16_t fs_get_cluster_size(FAT32_FS *fs);
 
 #endif /* _FAT32_FS_H_ */
 

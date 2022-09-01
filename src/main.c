@@ -77,9 +77,19 @@ DRIVE drv = {
     ._erase = mock_erase_mem,
     ._size = mock_size_mem
 };
-FAT32_FILE f;
+
 FAT32_FS fs = {
     .drv = &drv
+};
+
+FAT32_FILE f = {
+    .clus_base = 2,
+    .clus_curr = 2,
+    .entry_clus = 2,
+    .entry_clus_offset = 0,
+    .is_dir = 0,
+    .offset = 0,
+    ._fs = &fs
 };
 
 
@@ -101,7 +111,7 @@ int test_fs(void) {
     assert(fs_write_cluster(&fs, 2, 1, wbuf, 511) == 511);  // write full amount with non-zero offset
     assert(fs_write_cluster(&fs, 2, 0, wbuf, 512) == 512);  // write full amount with zero offset
 
-    fs_read_cluster(&fs, 2, 0, rbuf, 512);
+    assert(fs_read_cluster(&fs, 2, 0, rbuf, 512) == 512);
     assert(memcmp(rbuf, wbuf, 512) == 0);
     assert(fs_read_cluster(&fs, 0, 0, rbuf, 512) == 0); 
     assert(fs_read_cluster(&fs, 1, 0, rbuf, 512) == 0); 
@@ -113,18 +123,21 @@ int test_fs(void) {
 }
 
 int test_file_api(void) {
-    file_open(&fs, "/", &f);
+    uint8_t wbuf[1024];
+    uint8_t rbuf[1024];
+    memset(rbuf, 0, 1024);
+    for (int i = 0; i < 1024; i++) wbuf[i] = i;
 
-    file_open(&fs, "/foo.c", &f);    
-
-    file_open(&fs, "/foo.c/foo1.txt", &f);
-
+    assert(file_write(&f, wbuf, 20) == 20);
+    f.offset = 0;
+    assert(file_read(&f, rbuf, 20) == 20);
+    assert(memcmp(rbuf, wbuf, 20) == 0);
     return 1;
 }
 
 int main() {
     test_fs();
-    // test_file_api();
+    test_file_api();
     printf("tests complete\n");
     return 0;
 }
