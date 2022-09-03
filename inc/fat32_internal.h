@@ -16,6 +16,7 @@
 #define BAD_CLUSTER 0x0FFFFFF7
 #define END_OF_CLUSTERCHAIN 0x0FFFFFF8
 #define FREE_CLUSTER 0
+#define FAT_ENTRY_ZERO_MEDIA_BITMASK 0x0000000F
 #define CLEAN_SHUTDOWN_BITMASK 0x08000000
 #define HARD_ERROR_BITMASK 0x04000000
 
@@ -86,7 +87,7 @@ typedef struct {
     BOOT_SECTOR bootsec;
     uint8_t valid;
     uint16_t clus_sz;
-    uint32_t clus_count;
+    uint32_t max_valid_clus;
 } FAT32_FS;
 
 #endif /* _FAT32_INTERNAL_H_ */

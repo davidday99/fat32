@@ -5,11 +5,12 @@
 #include "fat32_conf.h"
 #include "drive.h"
 
+#define RESERVED_CLUSTER_ENTRY_COUNT 2
 #define CLUSTER_SIZE(fs) (fs->bootsec.params.bpb.sec_per_clus* \
                             fs->bootsec.params.bpb.bytes_per_sec)
 #define VERIFY_SECTORSIG(lo, hi) ((((hi << 8) & 0xFF00) | (lo & 0x00FF)) == SECTORSIG)
 #define INVALID_OFFSET(clus, offset) (clus_off >= CLUSTER_SIZE(fs) ||\
-                                        clus >= fs->clus_count ||\
+                                        clus >= fs->max_valid_clus ||\
                                         clus < fs->bootsec.params.bpb.root_clus)
 #define FAT32_CLUSTER_ENTRY_MASK (0x0FFFFFFF)         
 #define FAT32_CLUSTER_ENTRY_RESERVED_MASK (~FAT32_CLUSTER_ENTRY_MASK)
@@ -80,7 +81,7 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
 }
 
 uint32_t fs_get_free_fat_entry(FAT32_FS *fs) {
-    uint32_t fat_entry_cnt = fs->clus_count;
+    uint32_t fat_entry_cnt = fs->max_valid_clus;
     uint32_t i = 0; 
     while (i < fat_entry_cnt) {
         uint32_t entry = fs_read_fat_entry(fs, 0, i);
@@ -105,13 +106,15 @@ uint32_t fs_init(FAT32_FS *fs) {
     }
     fs->valid = VERIFY_SECTORSIG(fs->bootsec.bytes[510], fs->bootsec.bytes[511]);
     uint32_t status = fs_read_fat_entry(fs, 0, 1);
-    fs->clus_count = get_data_sector_count(fs) / fs->bootsec.params.bpb.sec_per_clus;
+    fs_write_fat_entry(fs, 0, 1, status & ~CLEAN_SHUTDOWN_BITMASK);
+    fs->max_valid_clus= (get_data_sector_count(fs) / fs->bootsec.params.bpb.sec_per_clus) + 
+                                RESERVED_CLUSTER_ENTRY_COUNT;
     return status;
 }
 
 void fs_deinit(FAT32_FS *fs) {
-    uint32_t status = fs_read_fat_entry(fs, 0, 1) & 0xF0000000;
-    uint32_t new_status = status | 0x08000000;
+    uint32_t status = fs_read_fat_entry(fs, 0, 1);
+    uint32_t new_status = status | CLEAN_SHUTDOWN_BITMASK;
     fs_write_fat_entry(fs, 0, 1, new_status);
     fs->valid = 0;
 }
@@ -130,8 +133,8 @@ __attribute__(( always_inline )) static inline uint32_t get_fat_base_addr(FAT32_
 
 
 __attribute__(( always_inline )) static inline uint32_t get_data_base_addr(FAT32_FS *fs) {
-    uint32_t fat_base_addr = get_fat_base_addr(fs, 0);
-    uint32_t d_base = fat_base_addr + (fs->bootsec.params.bpb.num_fats*
+    uint32_t f_base = get_fat_base_addr(fs, 0);
+    uint32_t d_base = f_base + (fs->bootsec.params.bpb.num_fats*
                                         fs->bootsec.params.bpb.fat_sz_32*
                                         fs->bootsec.params.bpb.bytes_per_sec); 
     return d_base;
@@ -186,8 +189,8 @@ static void init_fat_structure(FAT32_FS *fs, uint8_t fatnum) {
 	    write_drive32(fs->drv, 0, addr);     
     }
 
-    fs_write_fat_entry(fs, 0, 0, fs->bootsec.params.bpb.media);
-    fs_write_fat_entry(fs, 0, 1, CLEAN_SHUTDOWN_BITMASK);
+    fs_write_fat_entry(fs, 0, 0, fs->bootsec.params.bpb.media | ~FAT_ENTRY_ZERO_MEDIA_BITMASK);
+    fs_write_fat_entry(fs, 0, 1, CLEAN_SHUTDOWN_BITMASK | HARD_ERROR_BITMASK);
     fs_write_fat_entry(fs, 0, fs->bootsec.params.bpb.root_clus, END_OF_CLUSTERCHAIN);
 }
 
