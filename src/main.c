@@ -7,6 +7,7 @@
 #include "fat32_internal.h"
 #include "fat32_fs.h"
 #include "fat32_file.h"
+#include "tests.h"
 
 #define MEM_SZ 0x20000  // 128 MB
 
@@ -82,72 +83,9 @@ FAT32_FS fs = {
     .drv = &drv
 };
 
-FAT32_FILE f = {
-    .clus_base = 2,
-    .clus_curr = 2,
-    .entry_clus = 2,
-    .entry_clus_offset = 0,
-    .is_dir = 0,
-    .offset = 0,
-    ._fs = &fs
-};
-
-
-int test_fs(void) {
-    uint8_t wbuf[1024];
-    uint8_t rbuf[1024];
-    memset(rbuf, 0, 1024);
-    for (int i = 0; i < 1024; i++) wbuf[i] = i;
-
-    fs_format(&fs);
-    fs_init(&fs);
-    printf("fs %s\n", fs.valid ? "valid" : "invalid");
-    
-    assert(fs_write_cluster(&fs, 2, 0, wbuf, 513) == 512);  // write up to size of cluster       
-    assert(fs_write_cluster(&fs, 2, 1, wbuf, 512) == 511);  // non-zero offset
-    assert(fs_write_cluster(&fs, 2, 511, wbuf, 512) == 1);  // near end of cluster boundary
-    assert(fs_write_cluster(&fs, 2, 512, wbuf, 512) == 0);  // past end of cluster 
-    assert(fs_write_cluster(&fs, 0, 0, wbuf, 512) == 0);  // disallow writes to cluster before root cluster       
-    assert(fs_write_cluster(&fs, 2, 1, wbuf, 511) == 511);  // write full amount with non-zero offset
-    assert(fs_write_cluster(&fs, 2, 0, wbuf, 512) == 512);  // write full amount with zero offset
-
-    assert(fs_read_cluster(&fs, 2, 0, rbuf, 512) == 512);
-    assert(memcmp(rbuf, wbuf, 512) == 0);
-    assert(fs_read_cluster(&fs, 0, 0, rbuf, 512) == 0); 
-    assert(fs_read_cluster(&fs, 1, 0, rbuf, 512) == 0); 
-
-    uint32_t tmp = fs_read_fat_entry(&fs, 0, 0);
-    fs_write_fat_entry(&fs, 0, 0, 0xABCDEF01);
-    uint32_t entry = fs_read_fat_entry(&fs, 0, 0);
-    assert(entry == 0x0BCDEF01); 
-    fs_write_fat_entry(&fs, 0, 0, tmp);
-    return 1;
-}
-
-int test_file_api(void) {
-    uint8_t wbuf[1024];
-    uint8_t rbuf[1024];
-    memset(rbuf, 0, 1024);
-    for (int i = 0; i < 1024; i++) wbuf[i] = i;
-
-    assert(file_write(&f, wbuf, 20) == 20);
-    assert(f.offset == 20);
-    assert(f.size == 20);
-    f.offset = 0;
-    assert(file_read(&f, rbuf, 20) == 20);
-    assert(memcmp(rbuf, wbuf, 20) == 0);
-    assert(f.offset == 20);
-    assert(f.size == 20);
-    f.offset = 0;
-    assert(file_write(&f, wbuf, 513) == 513);
-    assert(f.clus_curr == 3);
-    assert(f.offset == 513);
-    return 1;
-}
-
 int main() {
-    test_fs();
-    test_file_api();
+    test_fs(&fs);
+    test_file_api(&fs);
     printf("tests complete\n");
     return 0;
 }
