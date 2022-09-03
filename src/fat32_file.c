@@ -44,7 +44,7 @@ uint32_t file_read(FAT32_FILE *fptr, void *buf, uint32_t count) {
     uint16_t clus_off = fptr->offset % clus_sz; 
     uint32_t i = 0;
     while (i < read_max) { 
-        if (clus_off >= clus_sz) {
+        if ((clus_off >= clus_sz) || (clus_off == 0 && fptr->offset > 0)) {
             if (get_next_cluster(fptr) == 0)
                 break;
             else
@@ -71,7 +71,7 @@ uint32_t file_write(FAT32_FILE *fptr, const void *buf, uint32_t count) {
     uint16_t clus_off = fptr->offset % clus_sz; 
     uint32_t i = 0;
     while (i < count) { 
-        if (clus_off >= clus_sz) {
+        if ((clus_off >= clus_sz) || (clus_off == 0 && fptr->offset > 0)) {
             if (get_next_cluster(fptr) == 0)
                 break;
             else
