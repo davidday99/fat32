@@ -124,7 +124,7 @@ static uint8_t get_next_cluster(FAT32_FILE *fptr) {
     uint32_t next_clus = fs_read_fat_entry(fptr->_fs, 0, fptr->clus_curr);
     if (next_clus == END_OF_CLUSTERCHAIN) {
         next_clus = fs_get_free_fat_entry(fptr->_fs);
-        if (next_clus != 0) {
+        if (next_clus != FREE_CLUSTER) {
             fs_write_fat_entry(fptr->_fs, 0, fptr->clus_curr, next_clus);
             fs_write_fat_entry(fptr->_fs, 0, next_clus, END_OF_CLUSTERCHAIN);
         } else {
@@ -238,7 +238,7 @@ static char *dir_entry_name_to_filename(const char *entry_name, char *buf) {
     if (ext_len != 0)
         buf[name_len] = '.';
     memcpy(buf + name_len + 1, ext, ext_len); 
-    buf[name_len + ext_len + 1] = '\0'; 
+    buf[name_len + ext_len] = '\0'; 
     return buf;
 }
 
