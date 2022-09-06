@@ -8,3 +8,6 @@ compile_commands.json
 tags 
 .cache/
 
+# Profiling artifacts
+gmon.out
+prof_output
