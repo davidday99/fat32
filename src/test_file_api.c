@@ -16,6 +16,12 @@ static int test_file_read_skip_clusters(FAT32_FS *fs);
 static int test_file_write_all_clusters(FAT32_FS *fs);
 static int test_file_read_all_clusters(FAT32_FS *fs);
 static int test_file_read_past_size(FAT32_FS *fs);
+static int test_file_open_root(FAT32_FS *fs);
+static int test_file_open_file_in_root(FAT32_FS *fs);
+static int test_file_open_bad_path(FAT32_FS *fs);
+static int test_file_open_dir_nested(FAT32_FS *fs);
+static int test_file_open_dir_nested_bad_path(FAT32_FS *fs);
+static int test_file_creat_and_write(FAT32_FS *fs);
 
 int test_file_api(FAT32_FS *fs) {
     test_file_write(fs);
@@ -28,6 +34,12 @@ int test_file_api(FAT32_FS *fs) {
     test_file_write_all_clusters(fs);
     test_file_read_all_clusters(fs);
     test_file_read_past_size(fs);
+    test_file_open_root(fs);
+    test_file_open_file_in_root(fs);
+    test_file_open_bad_path(fs);
+    test_file_open_dir_nested(fs);
+    test_file_open_dir_nested_bad_path(fs);
+    test_file_creat_and_write(fs);
     return 1;
 }
 
@@ -246,3 +258,66 @@ static int test_file_read_past_size(FAT32_FS *fs) {
     assert(file_read(&f, rbuf, 1024) == 1023); 
     return 1;
 }
+
+static int test_file_open_root(FAT32_FS *fs) {
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    file_open(fs, "/", 0, &f);
+    assert(strcmp(f.name, "/") == 0);
+    assert(f.clus_curr == fs->bootsec.params.bpb.root_clus);
+    return 1;
+}
+
+static int test_file_open_file_in_root(FAT32_FS *fs) {
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    file_open(fs, "/file", O_CREAT, &f);
+    assert(strcmp(f.name, "file") == 0);
+    assert(f.clus_curr == 3);
+    return 1;
+}
+
+static int test_file_open_bad_path(FAT32_FS *fs) {
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    assert(file_open(fs, "/bin/file", O_CREAT, &f) == NULL);
+    return 1;
+}
+
+static int test_file_open_dir_nested(FAT32_FS *fs) {
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    assert(file_open(fs, "/bin/", O_CREAT | O_DIRECTORY, &f) != NULL);
+    assert(file_open(fs, "/bin/dir1", O_CREAT | O_DIRECTORY, &f) != NULL);
+    return 1;
+}
+
+static int test_file_open_dir_nested_bad_path(FAT32_FS *fs) {
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    assert(file_open(fs, "/bin/dir1/", 1, &f) == NULL);
+    return 1;
+}
+
+static int test_file_creat_and_write(FAT32_FS *fs) {
+    uint8_t wbuf[1024];
+    uint8_t rbuf[1024];
+    unzero_buf(wbuf, 1024);
+    FAT32_FILE f;
+    fs_format(fs);
+    fs_init(fs); 
+    assert(file_mkdir(fs, "/bin/", &f) != NULL);
+    assert(file_creat(fs, "/bin/file", &f) != NULL);
+    assert(file_write(&f, wbuf, 1024) == 1024);
+    f.offset = 0;
+    f.clus_curr = f.clus_base;
+    assert(file_read(&f, rbuf, 1024) == 1024);
+    assert(memcmp(rbuf, wbuf, 1024) == 0);
+    return 1;
+}
+
