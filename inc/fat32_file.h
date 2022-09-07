@@ -4,6 +4,11 @@
 #include "fat32_internal.h"
 
 #define FAT32_MAX_FILENAME_LEN 11
+#define FILE_CREATE_FLAG_SET(flags) (flags & O_CREAT)
+#define FILE_DIRECTORY_FLAG_SET(flags) (flags & O_DIRECTORY)
+#define FILE_RONLY_FLAG_SET(flags) (flags & O_RONLY)
+#define FILE_WONLY_FLAG_SET(flags) (flags & O_WONLY)
+#define FILE_RW_FLAG_SET(flags) (flags & O_RW)
 
 typedef struct _fat32_file {
     char name[FAT32_MAX_FILENAME_LEN + 1];

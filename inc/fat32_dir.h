@@ -8,5 +8,7 @@ typedef struct _fat32_dir {
     FAT32_FILE _fprops; 
 } FAT32_DIR;
 
+FAT32_DIR *dir_open(FAT32_FS *fs, char *path, enum FILE_OPTIONS flags, FAT32_DIR *dptr);
+
 #endif /* _FAT32_DIR_H_ */
 

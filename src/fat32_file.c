@@ -117,7 +117,7 @@ FAT32_FILE *file_open(FAT32_FS *fs, char *path, enum FILE_OPTIONS flags, FAT32_F
         cptr = fptr;
     } else if (cptr == NULL &&
                 strtok_r(NULL, "/", &saveptr) == NULL && 
-                (flags & O_CREAT)) {
+                (FILE_CREATE_FLAG_SET(flags))) {
         fptr = insert_dir_entry_and_return_fptr(pptr, seg, flags, fptr);   
         cptr = fptr;
     } 
@@ -126,10 +126,6 @@ FAT32_FILE *file_open(FAT32_FS *fs, char *path, enum FILE_OPTIONS flags, FAT32_F
 
 FAT32_FILE *file_creat(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
     return file_open(fs, path, O_CREAT, fptr);
-}
-
-FAT32_FILE *file_mkdir(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
-    return file_open(fs, path, O_CREAT | O_DIRECTORY, fptr);
 }
     
 static uint8_t get_next_cluster(FAT32_FILE *fptr) {
