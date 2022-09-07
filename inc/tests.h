@@ -5,6 +5,7 @@
 
 int test_fs(FAT32_FS *fs);
 int test_file_api(FAT32_FS *fs);
+int test_dir_api(FAT32_FS *fs);
 
 #endif  /* _TESTS_H_ */
 

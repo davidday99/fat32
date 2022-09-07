@@ -86,6 +86,7 @@ FAT32_FS fs = {
 int main() {
     test_fs(&fs);
     test_file_api(&fs);
+    test_dir_api(&fs);
     printf("tests complete\n");
     return 0;
 }

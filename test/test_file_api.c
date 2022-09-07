@@ -300,7 +300,7 @@ static int test_file_open_dir_nested_bad_path(FAT32_FS *fs) {
     FAT32_FILE f;
     fs_format(fs);
     fs_init(fs); 
-    assert(file_open(fs, "/bin/dir1/", 1, &f) == NULL);
+    assert(file_open(fs, "/bin/dir1/", O_CREAT | O_DIRECTORY, &f) == NULL);
     return 1;
 }
 
@@ -311,7 +311,7 @@ static int test_file_creat_and_write(FAT32_FS *fs) {
     FAT32_FILE f;
     fs_format(fs);
     fs_init(fs); 
-    assert(file_mkdir(fs, "/bin/", &f) != NULL);
+    assert(file_open(fs, "/bin/", O_CREAT | O_DIRECTORY, &f) != NULL);
     assert(file_creat(fs, "/bin/file", &f) != NULL);
     assert(file_write(&f, wbuf, 1024) == 1024);
     f.offset = 0;
