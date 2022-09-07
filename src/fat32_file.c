@@ -32,11 +32,16 @@ char *strtok_r(char *str, const char *delim, char **saveptr);
 static uint8_t get_next_cluster(FAT32_FILE *fptr);
 static FAT32_FILE *get_root_fptr(FAT32_FS *fs, FAT32_FILE *fptr);
 static FAT32_FILE *seek_dir_open_entry(FAT32_FILE *dptr);
+static enum DIR_ENTRY_ATTRS flags_to_dir_entry_attrs(enum FILE_OPTIONS flags);
 static DIR_ENTRY *write_dir_entry(FAT32_FILE *dptr, DIR_ENTRY *dir_ent);
-static FAT32_FILE *get_file_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE *fptr);
-static FAT32_FILE *get_fptr_from_dir_entry(DIR_ENTRY *e, uint32_t clus, uint32_t clus_offset, FAT32_FILE *fptr);
+static FAT32_FILE *get_fptr_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE *fptr);
+static FAT32_FILE *get_fptr_from_dir_entry(DIR_ENTRY *e, FAT32_FILE *dptr, FAT32_FILE *fptr);
 static char *filename_to_dir_entry_name(const char *fname, char *buf);
 static char *dir_entry_name_to_filename(const char *entry_name, char *buf);
+static FAT32_FILE *insert_dir_entry_and_return_fptr(FAT32_FILE *dptr, 
+                                                    char *name, 
+                                                    enum FILE_OPTIONS flags, 
+                                                    FAT32_FILE *fptr);
 
 uint32_t file_read(FAT32_FILE *fptr, void *buf, uint32_t count) {
     uint32_t read_max = MIN(count, fptr->size - fptr->offset);
@@ -92,32 +97,39 @@ uint32_t file_write(FAT32_FILE *fptr, const void *buf, uint32_t count) {
     return i;
 }
 
-FAT32_FILE *file_open(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
+FAT32_FILE *file_open(FAT32_FS *fs, char *path, enum FILE_OPTIONS flags, FAT32_FILE *fptr) {
     char buf[256];
     char *saveptr;
     strcpy(buf, path);
-    FAT32_FILE curr;
-    FAT32_FILE *curr_ptr = get_root_fptr(fs, &curr);
+    FAT32_FILE parent, child;
+    FAT32_FILE *cptr = get_root_fptr(fs, &child);
+    FAT32_FILE *pptr = get_root_fptr(fs, &parent);
     char *seg;
     for (seg = strtok_r(buf, "/", &saveptr); seg !=  NULL; seg = strtok_r(NULL, "/", &saveptr)) {
         printf("%s\n", seg);
-        if ((curr_ptr = get_file_inside_dir(curr_ptr, seg, curr_ptr)) == NULL || !curr_ptr->is_dir) {
+        parent = child;
+        if ((cptr = get_fptr_inside_dir(pptr, seg, cptr)) == NULL || !pptr->is_dir) {
                break; 
         }
     }
-    if (curr_ptr != NULL) {
-        fptr->clus_base = curr_ptr->clus_base;
-        fptr->clus_curr = curr_ptr->clus_curr;
-        fptr->entry_clus = curr_ptr->entry_clus;
-        fptr->entry_clus_offset = curr_ptr->entry_clus_offset;
-        fptr->is_dir = curr_ptr->is_dir;
-        dir_entry_name_to_filename(curr_ptr->name, fptr->name);
-        fptr->offset = curr_ptr->offset;
-        fptr->size = curr_ptr->size;
-        fptr->_fs = fs;
-        curr_ptr = fptr;
+    if (cptr != NULL) { 
+        *fptr = *cptr;
+        cptr = fptr;
+    } else if (cptr == NULL &&
+                strtok_r(NULL, "/", &saveptr) == NULL && 
+                (flags & O_CREAT)) {
+        fptr = insert_dir_entry_and_return_fptr(pptr, seg, flags, fptr);   
+        cptr = fptr;
     } 
-    return curr_ptr;
+    return cptr;
+}
+
+FAT32_FILE *file_creat(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
+    return file_open(fs, path, O_CREAT, fptr);
+}
+
+FAT32_FILE *file_mkdir(FAT32_FS *fs, char *path, FAT32_FILE *fptr) {
+    return file_open(fs, path, O_CREAT | O_DIRECTORY, fptr);
 }
     
 static uint8_t get_next_cluster(FAT32_FILE *fptr) {
@@ -147,8 +159,29 @@ static FAT32_FILE *get_root_fptr(FAT32_FS *fs, FAT32_FILE *fptr) {
     return fptr; 
 } 
 
-DIR_ENTRY *read_dir_entry(FAT32_FILE* fptr, DIR_ENTRY *dir_ent) {
-    file_read(fptr, dir_ent->bytes, sizeof(DIR_ENTRY)); 
+static FAT32_FILE *insert_dir_entry_and_return_fptr(FAT32_FILE *dptr, char *name, enum FILE_OPTIONS flags, FAT32_FILE *fptr) {
+    uint32_t cluster = fs_get_free_fat_entry(dptr->_fs);
+    if (cluster == 0)
+        return NULL;
+    fs_write_fat_entry(dptr->_fs, 0, cluster, END_OF_CLUSTERCHAIN);
+    uint32_t tmp_off = dptr->offset;
+    uint32_t tmp_clus = dptr->clus_curr;
+    seek_dir_open_entry(dptr); 
+    DIR_ENTRY e;
+    memset(e.bytes, 0, sizeof(DIR_ENTRY));
+    e.fields.attr = flags_to_dir_entry_attrs(flags);
+    e.fields.fst_clus_hi = (cluster >> 16) & 0xFFFF;
+    e.fields.fst_clus_lo = cluster & 0xFFFF;
+    filename_to_dir_entry_name(name, (char *) e.fields.name);
+    fptr = get_fptr_from_dir_entry(&e, dptr, fptr); 
+    write_dir_entry(dptr, &e);
+    dptr->offset = tmp_off;
+    dptr->clus_curr = tmp_clus;
+    return fptr;
+}
+
+DIR_ENTRY *read_dir_entry(FAT32_FILE* dptr, DIR_ENTRY *dir_ent) {
+    file_read(dptr, dir_ent->bytes, sizeof(DIR_ENTRY)); 
     return dir_ent;
 }
 
@@ -159,26 +192,37 @@ static DIR_ENTRY *write_dir_entry(FAT32_FILE *dptr, DIR_ENTRY *dir_ent) {
 
 static FAT32_FILE *seek_dir_open_entry(FAT32_FILE *dptr) {
     DIR_ENTRY e;
-    for (read_dir_entry(dptr, &e); e.bytes[0] != 0 && e.bytes[0] != 0xE5; read_dir_entry(dptr, &e))
-        ; 
+    memset(e.bytes, 0, sizeof(DIR_ENTRY));
+    uint32_t prev_clus = dptr->clus_curr;
+    uint32_t prev_off = dptr->offset;
+    for (read_dir_entry(dptr, &e);
+            e.bytes[0] != 0 && e.bytes[0] != 0xE5; 
+            read_dir_entry(dptr, &e)) {
+        prev_clus = dptr->clus_curr;
+        prev_off = dptr->offset;
+    }
+    dptr->clus_curr = prev_clus;
+    dptr->offset = prev_off; 
     return dptr;
 }
 
-static FAT32_FILE *get_fptr_from_dir_entry(DIR_ENTRY *e, uint32_t clus, uint32_t clus_offset, FAT32_FILE *fptr) {
+static FAT32_FILE *get_fptr_from_dir_entry(DIR_ENTRY *e, FAT32_FILE *dptr, FAT32_FILE *fptr) {
+    uint32_t clus_sz = fs_get_cluster_size(dptr->_fs);
     fptr->clus_base = ((e->fields.fst_clus_hi << 8) & 0xFF00) | (e->fields.fst_clus_lo & 0xFF);
     fptr->clus_curr = fptr->clus_base;
-    fptr->entry_clus = clus;
-    fptr->entry_clus_offset = clus_offset;
+    fptr->entry_clus = dptr->clus_curr;
+    fptr->entry_clus_offset = dptr->offset % clus_sz;
     fptr->is_dir = IS_DIRECTORY(e->fields.attr);
     dir_entry_name_to_filename((char *) e->fields.name, fptr->name);
     fptr->offset = 0;
     fptr->size = e->fields.file_size; 
-    fptr->_fs = NULL;
+    fptr->_fs = dptr->_fs;
     return fptr; 
 }
 
-static FAT32_FILE *get_file_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE *fptr) {
+static FAT32_FILE *get_fptr_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE *fptr) {
     DIR_ENTRY e;
+    memset(e.bytes, 0, sizeof(e));
     char dir_entry_name[FAT32_MAX_FILENAME_LEN + 1];
     filename_to_dir_entry_name(name, dir_entry_name);
     FAT32_FILE *success = NULL;
@@ -192,7 +236,9 @@ static FAT32_FILE *get_file_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE 
     for (read_dir_entry(dptr, &e); e.bytes[0] != 0; read_dir_entry(dptr, &e)) {
         if (memcmp(e.fields.name, dir_entry_name, FAT32_MAX_FILENAME_LEN) == 0) {
             fptr->_fs = dptr->_fs;
-            fptr = get_fptr_from_dir_entry(&e, entry_clus, entry_clus_offset, fptr);
+            fptr = get_fptr_from_dir_entry(&e, dptr, fptr);
+            fptr->entry_clus = entry_clus;
+            fptr->entry_clus_offset = entry_clus_offset;
             success = fptr; 
             break;
         } 
@@ -202,6 +248,15 @@ static FAT32_FILE *get_file_inside_dir(FAT32_FILE *dptr, char *name, FAT32_FILE 
     dptr->offset = offset;
     dptr->clus_curr = clus_curr;
     return success;
+}
+
+static enum DIR_ENTRY_ATTRS flags_to_dir_entry_attrs(enum FILE_OPTIONS flags) {
+    enum DIR_ENTRY_ATTRS attrs = 0;
+    if (flags & O_DIRECTORY)
+        attrs |= ATTR_DIRECTORY;
+    if (flags & O_RONLY)
+        attrs |= ATTR_READ_ONLY;
+    return attrs;
 }
 
 static char *filename_to_dir_entry_name(const char *fname, char *buf) {
