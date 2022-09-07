@@ -12,7 +12,7 @@
 #define INVALID_OFFSET(clus, offset) (clus_off >= CLUSTER_SIZE(fs) ||\
                                         clus >= fs->max_valid_clus ||\
                                         clus < fs->bootsec.params.bpb.root_clus)
-#define FAT32_CLUSTER_ENTRY_MASK (0x0FFFFFFF)         
+#define FAT32_CLUSTER_ENTRY_MASK 0x0FFFFFFF         
 #define FAT32_CLUSTER_ENTRY_RESERVED_MASK (~FAT32_CLUSTER_ENTRY_MASK)
 
 static uint32_t get_fat_base_addr(FAT32_FS *fs, uint8_t fatnum);
@@ -119,7 +119,7 @@ void fs_deinit(FAT32_FS *fs) {
     fs->valid = 0;
 }
 
-uint16_t fs_get_cluster_size(FAT32_FS *fs) {
+__attribute__(( always_inline )) inline uint16_t fs_get_cluster_size(FAT32_FS *fs) {
     return fs->bootsec.params.bpb.sec_per_clus*
             fs->bootsec.params.bpb.bytes_per_sec;
 }
