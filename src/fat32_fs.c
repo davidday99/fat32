@@ -119,7 +119,7 @@ void fs_deinit(FAT32_FS *fs) {
     fs->valid = 0;
 }
 
-__attribute__(( always_inline )) inline uint16_t fs_get_cluster_size(FAT32_FS *fs) {
+uint16_t fs_get_cluster_size(FAT32_FS *fs) {
     return fs->bootsec.params.bpb.sec_per_clus*
             fs->bootsec.params.bpb.bytes_per_sec;
 }
