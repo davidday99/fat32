@@ -23,6 +23,7 @@ CFLAGS = -I$(INC) -MMD -MP -Wall
 RELEASEFLAGS = -Os
 ARCHIVEFLAGS = rcs
 DEBUGFLAGS = -g3
+TESTFLAGS = -O0 -g3
 PROFLAGS = $(RELEASEFLAGS) -pg
 
 release: $(ODIR)/release/$(ONAME)
@@ -51,7 +52,7 @@ $(ODIR)/debug/$(ONAME): $(DEBUGOBJS) $(TESTOBJS)
 
 $(ODIR)/test/$(ONAME): $(RELEASEOBJS) $(TESTOBJS) 
 	$(MKDIR)
-	$(CC) -o $(ODIR)/test/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS)
+	$(CC) -o $(ODIR)/test/$(ONAME) $^ $(CFLAGS) $(TESTFLAGS)
 	ctags -R *
 
 $(ODIR)/prof/$(ONAME): $(PROFOBJS) $(TESTOBJS)
@@ -73,7 +74,7 @@ $(OBJ)/debug/%.o: $(TEST)/%.c
 
 $(OBJ)/test/%.o: $(TEST)/%.c
 	$(MKDIR)   
-	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
+	$(CC) -o $@ $< -c $(CFLAGS) $(TESTFLAGS)
 
 $(OBJ)/prof/%.o: $(SRC)/%.c
 	$(MKDIR)   
