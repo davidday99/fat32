@@ -44,7 +44,11 @@ static FAT32_FILE *insert_dir_entry_and_return_fptr(FAT32_FILE *dptr,
                                                     FAT32_FILE *fptr);
 
 uint32_t file_read(FAT32_FILE *fptr, void *buf, uint32_t count) {
-    uint32_t read_max = MIN(count, fptr->size - fptr->offset);
+    uint32_t read_max;
+    if (fptr->is_dir) 
+       read_max = count; 
+    else
+       read_max =  MIN(count, fptr->size - fptr->offset);
     uint16_t clus_sz = fs_get_cluster_size(fptr->_fs);
     uint16_t clus_off = fptr->offset % clus_sz; 
     uint32_t i = 0;
