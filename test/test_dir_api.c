@@ -7,7 +7,7 @@
 #include "fat32_dir.h"
 #include "test_utils.h"
 
-static int test_dir_open_nested(FAT32_FS *fs) {
+int test_dir_open_nested(FAT32_FS *fs) {
     FAT32_DIR d;
     fs_format(fs);
     fs_init(fs); 
@@ -16,7 +16,7 @@ static int test_dir_open_nested(FAT32_FS *fs) {
     return 1;
 }
 
-static int test_dir_open_nested_bad_path(FAT32_FS *fs) {
+int test_dir_open_nested_bad_path(FAT32_FS *fs) {
     FAT32_DIR d;
     fs_format(fs);
     fs_init(fs); 

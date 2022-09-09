@@ -6,26 +6,6 @@
 #include "fat32_fs.h"
 #include "test_utils.h"
 
- static int test_format(FAT32_FS *fs);
- static int test_write_cluster(FAT32_FS *fs);
- static int test_read_cluster(FAT32_FS *fs);
- static int test_read_cluster_equals_write_cluster(FAT32_FS *fs);
- static int test_read_and_write_fat_entry(FAT32_FS *fs);
- 
-int test_fs(FAT32_FS *fs) {
-    printf("******************** test_format ********************\n");
-    test_format(fs);
-    printf("******************** test_write_cluster ********************\n");
-    test_write_cluster(fs);
-    printf("******************** test_read_cluster ********************\n");
-    test_read_cluster(fs);
-    printf("******************** test_read_cluster_equals_write_cluster ********************\n");
-    test_read_cluster_equals_write_cluster(fs);
-    printf("******************** test_read_and_write_fat_entry ********************\n");
-    test_read_and_write_fat_entry(fs);
-    return 1;
-}
-
 int test_format(FAT32_FS *fs) {
     fs_format(fs);
     fs_init(fs);
@@ -76,6 +56,20 @@ int test_read_and_write_fat_entry(FAT32_FS *fs) {
     fs_write_fat_entry(fs, 0, 0, 0xABCDEF01);
     uint32_t entry = fs_read_fat_entry(fs, 0, 0);
     assert(entry == 0x0BCDEF01);  // top nibble should be masked out 
+    return 1;
+}
+
+int test_fs(FAT32_FS *fs) {
+    printf("******************** test_format ********************\n");
+    test_format(fs);
+    printf("******************** test_write_cluster ********************\n");
+    test_write_cluster(fs);
+    printf("******************** test_read_cluster ********************\n");
+    test_read_cluster(fs);
+    printf("******************** test_read_cluster_equals_write_cluster ********************\n");
+    test_read_cluster_equals_write_cluster(fs);
+    printf("******************** test_read_and_write_fat_entry ********************\n");
+    test_read_and_write_fat_entry(fs);
     return 1;
 }
 
