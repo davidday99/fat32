@@ -1,3 +1,4 @@
+#include <stdio.h>  
 #include <stdint.h>
 #include <string.h>
 #include <assert.h> 
@@ -44,7 +45,9 @@ static int test_dir_open_nested_bad_path(FAT32_FS *fs) {
  */
 
 int test_dir_api(FAT32_FS *fs) {
+    printf("******************** test_dir_open_nested ********************\n");
     test_dir_open_nested(fs);
+    printf("******************** test_dir_open_nested_bad_path ********************\n");
     test_dir_open_nested_bad_path(fs);
     return 1;
 }

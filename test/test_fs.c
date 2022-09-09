@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -12,10 +13,15 @@
  static int test_read_and_write_fat_entry(FAT32_FS *fs);
  
 int test_fs(FAT32_FS *fs) {
+    printf("******************** test_format ********************\n");
     test_format(fs);
+    printf("******************** test_write_cluster ********************\n");
     test_write_cluster(fs);
+    printf("******************** test_read_cluster ********************\n");
     test_read_cluster(fs);
+    printf("******************** test_read_cluster_equals_write_cluster ********************\n");
     test_read_cluster_equals_write_cluster(fs);
+    printf("******************** test_read_and_write_fat_entry ********************\n");
     test_read_and_write_fat_entry(fs);
     return 1;
 }

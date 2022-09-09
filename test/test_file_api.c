@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h> 
@@ -24,21 +25,37 @@ static int test_file_open_dir_nested_bad_path(FAT32_FS *fs);
 static int test_file_creat_and_write(FAT32_FS *fs);
 
 int test_file_api(FAT32_FS *fs) {
+    printf("******************** test_file_write ********************\n");
     test_file_write(fs);
+    printf("******************** test_file_read ********************\n");
     test_file_read(fs);
+    printf("******************** test_file_equals_write  ********************\n");
     test_file_read_equals_write(fs);    
+    printf("******************** test_file_write_multi_cluster  ********************\n");
     test_file_write_multi_cluster(fs);
+    printf("******************** test_file_write_skip_clusters  ********************\n");
     test_file_write_skip_clusters(fs);
+    printf("******************** test_file_read_multi_cluster  ********************\n");
     test_file_read_multi_cluster(fs);
+    printf("******************** test_file_read_skip_clusters ********************\n");
     test_file_read_skip_clusters(fs);
+    printf("******************** test_file_write_all_clusters ********************\n");
     test_file_write_all_clusters(fs);
+    printf("******************** test_file_read_all_clusters ********************\n");
     test_file_read_all_clusters(fs);
+    printf("******************** test_file_read_past_size ********************\n");
     test_file_read_past_size(fs);
+    printf("******************** test_file_open_root ********************\n");
     test_file_open_root(fs);
+    printf("******************** test_file_open_file_in_root ********************\n");
     test_file_open_file_in_root(fs);
+    printf("******************** test_file_open_bad_path ********************\n");
     test_file_open_bad_path(fs);
+    printf("******************** test_file_open_dir_nested ********************\n");
     test_file_open_dir_nested(fs);
+    printf("******************** test_file_open_dir_nested_bad_path ********************\n");
     test_file_open_dir_nested_bad_path(fs);
+    printf("******************** test_file_creat_and_write ********************\n");
     test_file_creat_and_write(fs);
     return 1;
 }
