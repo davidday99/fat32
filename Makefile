@@ -1,17 +1,24 @@
 SRC = src
 TEST = test
+REL = release
+DEBUG = debug
+PROF = prof
+DEVICE = device
 INC = inc
 OBJ = obj
 ODIR = bin
 ONAME = libfat32
+ANAME = libfat32.a
 PROFNAME = prof_output
 
 SRCS = $(wildcard $(SRC)/*.c)
 TESTS = $(wildcard $(TEST)/*.c)
-RELEASEOBJS = $(addprefix $(OBJ)/release/, $(notdir $(SRCS:.c=.o)))
-DEBUGOBJS = $(addprefix $(OBJ)/debug/, $(notdir $(SRCS:.c=.o)))
-TESTOBJS = $(addprefix $(OBJ)/test/, $(notdir $(TESTS:.c=.o)))
-PROFOBJS = $(addprefix $(OBJ)/prof/, $(notdir $(SRCS:.c=.o)))
+DEVS = $(wildcard $(DEVICE)/*.c)
+RELEASEOBJS = $(addprefix $(OBJ)/$(REL)/, $(notdir $(SRCS:.c=.o)))
+DEBUGOBJS = $(addprefix $(OBJ)/$(DEBUG)/, $(notdir $(SRCS:.c=.o)))
+TESTOBJS = $(addprefix $(OBJ)/$(TEST)/, $(notdir $(TESTS:.c=.o)))
+PROFOBJS = $(addprefix $(OBJ)/$(PROF)/, $(notdir $(SRCS:.c=.o)))
+DEVOBJS = $(addprefix $(OBJ)/$(DEVICE)/, $(notdir $(DEVS:.c=.o)))
 
 CC = gcc
 DEBUGGER = gdb-multiarch
@@ -25,70 +32,81 @@ ARCHIVEFLAGS = rcs
 DEBUGFLAGS = -g3
 TESTFLAGS = -O0 -g3
 PROFLAGS = $(RELEASEFLAGS) -pg
+LIBS = -lusb-1.0
+LIBFLAGS = -L/usr/lib -I/usr/include/libusb-1.0
 
-release: $(ODIR)/release/$(ONAME)
+release: $(ODIR)/$(REL)/$(ANAME)
 
-debug: $(ODIR)/debug/$(ONAME)
+debug: $(ODIR)/$(DEBUG)/$(ONAME)
 
-test: $(ODIR)/test/$(ONAME)
+test: $(ODIR)/$(TEST)/$(ONAME)
 
-profile: $(ODIR)/prof/$(ONAME)
-	./$(ODIR)/prof/$(ONAME)
-	$(PROFILER) $(ODIR)/prof/$(ONAME) gmon.out > $(PROFNAME)
-	
+profile: $(ODIR)/$(PROF)/$(ONAME)
+	./$(ODIR)/$(PROF)/$(ONAME)
+	$(PROFILER) $(ODIR)/$(PROF)/$(ONAME) gmon.out > $(PROFNAME)
+
+device: $(ODIR)/$(DEVICE)/$(ONAME) 
+
 clean:
 	-$(RM) $(OBJ)
 	-$(RM) $(ODIR)
 
-$(ODIR)/release/$(ONAME): $(RELEASEOBJS)
+$(ODIR)/$(REL)/$(ANAME): $(RELEASEOBJS)
 	$(MKDIR)
-	$(AR) $(ARCHIVEFLAGS) $(ODIR)/release/$(ONAME).a $^
+	$(AR) $(ARCHIVEFLAGS) $(ODIR)/$(REL)/$(ANAME) $^
 	ctags -R *
 
-$(ODIR)/debug/$(ONAME): $(DEBUGOBJS) $(TESTOBJS)
+$(ODIR)/$(DEBUG)/$(ONAME): $(DEBUGOBJS) $(TESTOBJS)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/debug/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) 
+	$(CC) -o $(ODIR)/$(DEBUG)/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) $(LIBS)
 	ctags -R *
 
-$(ODIR)/test/$(ONAME): $(RELEASEOBJS) $(TESTOBJS) 
+$(ODIR)/$(TEST)/$(ONAME): $(RELEASEOBJS) $(TESTOBJS) 
 	$(MKDIR)
-	$(CC) -o $(ODIR)/test/$(ONAME) $^ $(CFLAGS) $(TESTFLAGS)
+	$(CC) -o $(ODIR)/$(TEST)/$(ONAME) $^ $(CFLAGS) $(TESTFLAGS) $(LIBS)
 	ctags -R *
 
-$(ODIR)/prof/$(ONAME): $(PROFOBJS) $(TESTOBJS)
+$(ODIR)/$(PROF)/$(ONAME): $(PROFOBJS) $(TESTOBJS)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/prof/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS) 
+	$(CC) -o $(ODIR)/$(PROF)/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS) 
 	ctags -R *
 
-$(OBJ)/release/%.o: $(SRC)/%.c
+$(ODIR)/$(DEVICE)/$(ONAME): $(DEVOBJS) $(ODIR)/$(REL)/$(ANAME)
+	$(MKDIR)
+	$(CC) -o $(ODIR)/$(DEVICE)/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) $(LIBFLAGS) $(LIBS) 
+
+$(OBJ)/$(REL)/%.o: $(SRC)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) 
 
-$(OBJ)/debug/%.o: $(SRC)/%.c
+$(OBJ)/$(DEBUG)/%.o: $(SRC)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(DEBUGFLAGS)
 
-$(OBJ)/debug/%.o: $(TEST)/%.c
+$(OBJ)/$(DEBUG)/%.o: $(TEST)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(DEBUGFLAGS)
 
-$(OBJ)/test/%.o: $(TEST)/%.c
+$(OBJ)/$(TEST)/%.o: $(TEST)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(TESTFLAGS)
 
-$(OBJ)/prof/%.o: $(SRC)/%.c
+$(OBJ)/$(PROF)/%.o: $(SRC)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS)
 	
-$(OBJ)/prof/%.o: $(TEST)/%.c
+$(OBJ)/$(PROF)/%.o: $(TEST)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS)
 
+$(OBJ)/$(DEVICE)/%.o: $(DEVICE)/%.c
+	$(MKDIR)
+	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
 
 -include $(DEBUGOBJS:.o=.d)
 -include $(RELEASEOBJS:.o=.d)
 -include $(TESTOBJS:.o=.d)
 -include $(PROFOBJS:.o=.d)
 
-.PHONY: clean debug
+.PHONY: clean 
 
