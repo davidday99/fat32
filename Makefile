@@ -101,7 +101,7 @@ $(OBJ)/$(PROF)/%.o: $(TEST)/%.c
 
 $(OBJ)/$(DEVICE)/%.o: $(DEVICE)/%.c
 	$(MKDIR)
-	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS)
+	$(CC) -o $@ $< -c $(CFLAGS) $(DEBUGFLAGS)
 
 -include $(DEBUGOBJS:.o=.d)
 -include $(RELEASEOBJS:.o=.d)
