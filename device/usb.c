@@ -1,10 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
-#include <libusb-1.0/libusb.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "usb.h"
 
-#define BULK_IN_ENDPOINT 0x81
-#define BULK_OUT_ENDPOINT 0x02
+#define READ 0
+#define WRITE 1
+
+static int p_read_disk[2];
+static int p_write_disk[2];
+
+static char sector[4096];
 
 USB_DRIVE *usb_init(USB_DRIVE *usb) {
     int result = libusb_init(&usb->ctx);
@@ -14,38 +21,51 @@ USB_DRIVE *usb_init(USB_DRIVE *usb) {
         return NULL;
 }
 
-void usb_deinit(USB_DRIVE *usb) {
-    libusb_close(usb->handle);
-    libusb_exit(usb->ctx);
+void child_read(void) {
+    char *argv[] = {"/bin/dd", "if=/dev/sdb1", "bs=512", "count=1", "status=none", NULL};
+    execve(argv[0], argv, NULL);
 }
 
-USB_DRIVE *usb_open_device(USB_DRIVE *usb, uint16_t vendor_id, uint16_t product_id) {
-    usb->handle = libusb_open_device_with_vid_pid(usb->ctx, vendor_id, product_id);
-    if (usb->handle == NULL)
-        return NULL;
-    else
-        return usb;
+void child_write(void) {
+    char *argv[] = {"/bin/dd", "of=/dev/sdb1", "bs=512", "count=1", "status=none", NULL};
+    execve(argv[0], argv, NULL);
 }
 
-int usb_bulk_write(USB_DRIVE *usb, const void *buf, int length, int *success) {
-    int transferred;
-    *success = libusb_bulk_transfer(usb->handle, BULK_IN_ENDPOINT, (unsigned char *) buf, length, &transferred, 0);
-    return transferred;
+int read_sector() {
+    int status;
+    int pid = fork();
+    if (pid == 0) {
+        dup2(p_read_disk[WRITE], STDOUT_FILENO);
+        dup2(p_write_disk[READ], STDIN_FILENO);
+        child_read();
+    } else {
+        wait(&status);
+    }
+    int count = read(p_read_disk[READ], sector, 512);
+    return count;
 }
 
-int usb_bulk_read(USB_DRIVE *usb, void *buf, int length, int *success) {
-    int transferred;
-    *success = libusb_bulk_transfer(usb->handle, BULK_OUT_ENDPOINT, buf, length, &transferred, 0);
-    return transferred;
+int write_sector(const void *buf, int count) {
+    int status;
+    int written = 0;
+    int pid = fork();
+    if (pid == 0) {
+        dup2(p_read_disk[WRITE], STDOUT_FILENO);
+        dup2(p_write_disk[READ], STDIN_FILENO);
+        child_write();
+    } else {
+        written = write(p_write_disk[WRITE], buf, count);
+        wait(&status);
+    }
+    return count;
 }
 
 int main() {
-    USB_DRIVE usb;
-    USB_DRIVE *usbptr = &usb;
-    usbptr = usb_init(usbptr);
-    usbptr = usb_open_device(usbptr, 0x0781, 0x5599); 
-    char buf[1024];
-    int size = libusb_get_string_descriptor_ascii(usbptr->handle, 1, buf, 1024);
+    int status = pipe(p_read_disk);
+    status = pipe(p_write_disk);
+    if (status == -1)
+        exit(-1);    
+    printf("Done!\n");
     return 0;
 }
 
