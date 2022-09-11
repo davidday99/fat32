@@ -286,7 +286,7 @@ int test_file_creat_and_write(FAT32_FS *fs) {
 }
 
 int test_file_creat_and_write_real_data(FAT32_FS *fs) {
-    FILE *f_real = fopen("real_file.txt", "rb");
+    FILE *f_real = fopen("test/real_file.txt", "rb");
     fseek(f_real, 0, SEEK_END);
     int size = ftell(f_real);
     rewind(f_real);
