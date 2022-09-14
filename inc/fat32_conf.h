@@ -21,9 +21,9 @@
 #define CONF_FS_INFO                         1
 #define CONF_BK_BOOT_SECTOR                  0
 #define CONF_DRIVE_NUM                       0x80
-#define CONF_VOLUME_ID                       0
+#define CONF_VOLUME_ID                       0xCCCCCCCC
 #define CONF_VOLUME_LABEL                    "NO NAME    "
-#define CONF_FS_TYPE                         "FAT        "
+#define CONF_FS_TYPE                         "FAT32      "
 
 #endif /* _FAT32_CONF_H_ */
 
