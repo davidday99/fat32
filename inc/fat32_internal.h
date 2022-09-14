@@ -46,7 +46,7 @@ typedef union _DIR_ENTRY {
 typedef struct __attribute__(( packed )) bios_param_block {
     uint16_t bytes_per_sec;
     uint8_t sec_per_clus;
-    uint8_t reserved_sec_cnt;
+    uint16_t reserved_sec_cnt;
     uint8_t num_fats;
     uint16_t root_ent_cnt;
     uint16_t tot_sec_16;
