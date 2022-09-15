@@ -13,129 +13,78 @@
 static int p_read_disk[2];
 static int p_write_disk[2];
 
-void child_read(uint32_t addr, char count) {
+void child_read(uint32_t sector, uint32_t offset, uint32_t count) {
+    uint32_t addr = sector*512 + offset;
     char addr_str[16];
     char count_str[8];
     snprintf(addr_str, sizeof(addr_str), "skip=%u", addr);
-    snprintf(count_str, sizeof(count_str), "count=%c", count);
-    char *argv[] = {"/bin/dd", "if=/dev/sdb1", "status=none", "iflag=count_bytes,skip_bytes", addr_str, count_str, NULL};
+    snprintf(count_str, sizeof(count_str), "count=%u", count);
+    char *argv[] = {"/bin/dd", "if=/dev/sda1", "iflag=count_bytes,skip_bytes", addr_str, count_str, NULL};
     execve(argv[0], argv, NULL);
 }
 
-void child_write(const uint32_t addr) {
+void child_write(const uint32_t sector, uint32_t offset, const void *buf) {
+    uint32_t addr = sector*512 + offset;
     char addr_str[16];
     snprintf(addr_str, sizeof(addr_str), "seek=%u", addr);
-    char *argv[] = {"/bin/dd", "of=/dev/sdb1", "count=1", "status=none", "oflag=seek_bytes", addr_str, NULL};
+    char *argv[] = {"/bin/dd", "of=/dev/sda1", "count=1", "oflag=seek_bytes", addr_str, NULL};
     execve(argv[0], argv, NULL);
 }
 
-uint8_t read8(uint32_t addr) {
+void child_erase() {
+    char *argv[] = {"/bin/dd", "if=/dev/zero", "of=/dev/sda1", "bs=1G", NULL};
+    execve(argv[0], argv, NULL);
+}
+
+uint32_t read_dd(uint32_t sector, uint32_t offset, void *buf, uint32_t count) {
     int status;
-    uint8_t v;
     int pid = fork();
     if (pid == 0) {
         dup2(p_read_disk[WRITE], STDOUT_FILENO);
         dup2(p_write_disk[READ], STDIN_FILENO);
-        child_read(addr, '1');
+        child_read(sector, offset, count);
     } else {
         wait(&status);
         fsync(p_read_disk[WRITE]);
     }
-    read(p_read_disk[READ], &v, 1);
-    return v;
+    read(p_read_disk[READ], buf, count);
+    return count;
 }
 
-uint16_t read16(uint32_t addr) {
+uint32_t write_dd(uint32_t sector, uint32_t offset, const void *buf, uint32_t count)  {
     int status;
-    uint16_t v;
+    write(p_write_disk[WRITE], buf, count);
     int pid = fork();
     if (pid == 0) {
         dup2(p_read_disk[WRITE], STDOUT_FILENO);
         dup2(p_write_disk[READ], STDIN_FILENO);
-        child_read(addr, '2');
+        child_write(sector, offset, buf);
     } else {
         wait(&status);
         fsync(p_read_disk[WRITE]);
     }
-    read(p_read_disk[READ], &v, 2);
-    return v;
+    return count;
 }
 
-uint32_t read32(uint32_t addr) {
+void erase_dd() {
     int status;
-    uint32_t v;
     int pid = fork();
     if (pid == 0) {
-        dup2(p_read_disk[WRITE], STDOUT_FILENO);
-        dup2(p_write_disk[READ], STDIN_FILENO);
-        child_read(addr, '4');
+        child_erase();
     } else {
-        wait(&status);
-        fsync(p_read_disk[WRITE]);
-    }
-    read(p_read_disk[READ], &v, 4);
-    return v;
-}
-
-void write8(const uint8_t v, const uint32_t addr) {
-    int status;
-    write(p_write_disk[WRITE], &v, 1);
-    int pid = fork();
-    if (pid == 0) {
-        dup2(p_read_disk[WRITE], STDOUT_FILENO);
-        dup2(p_write_disk[READ], STDIN_FILENO);
-        child_write(addr);
-    } else {
-        wait(&status);
-        fsync(p_read_disk[WRITE]);
+        wait(&status); 
     }
 }
 
-void write16(const uint16_t v, const uint32_t addr) {
-    int status;
-    write(p_write_disk[WRITE], &v, 2);
-    int pid = fork();
-    if (pid == 0) {
-        dup2(p_read_disk[WRITE], STDOUT_FILENO);
-        dup2(p_write_disk[READ], STDIN_FILENO);
-        child_write(addr);
-    } else {
-        wait(&status);
-        fsync(p_read_disk[WRITE]);
-    }
-}
-
-void write32(const uint32_t v, const uint32_t addr) {
-    int status;
-    write(p_write_disk[WRITE], &v, 4);
-    int pid = fork();
-    if (pid == 0) {
-        dup2(p_read_disk[WRITE], STDOUT_FILENO);
-        dup2(p_write_disk[READ], STDIN_FILENO);
-        child_write(addr);
-    } else {
-        wait(&status);
-        fsync(p_read_disk[WRITE]);
-    }
-}
-
-void erase() {
-    return;
-}
-
-uint32_t size() {
-    return 0x20000;
+uint32_t size_dd() {
+    return 1000000000UL;
 }
 
 DRIVE drv = {
-    ._read8 = read8,
-    ._read16 = read16,
-    ._read32 = read32,
-    ._write8 = write8,
-    ._write16 = write16,
-    ._write32 = write32,
-    ._erase = erase,
-    ._size = size
+    ._read = read_dd,
+    ._write = write_dd,
+    ._erase = erase_dd,
+    ._size = size_dd
 };
 
 FAT32_FS fs = {
@@ -148,5 +97,10 @@ int main() {
     if (status == -1)
         exit(-1);    
     fs_format(&fs);
+    FAT32_FILE f;
+    file_open(&fs, "/bin", O_CREAT | O_DIRECTORY, &f);
+    file_open(&fs, "test.c", O_CREAT, &f);
+    file_write(&f, "hello world", 12);
     printf("Done!\n");
 }
+
