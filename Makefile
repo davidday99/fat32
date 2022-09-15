@@ -3,7 +3,7 @@ TEST = test
 REL = release
 DEBUG = debug
 PROF = prof
-DEVICE = device
+BACKEND = backend
 INC = inc
 OBJ = obj
 ODIR = build
@@ -13,12 +13,12 @@ PROFNAME = prof_output
 
 SRCS = $(wildcard $(SRC)/*.c)
 TESTS = $(wildcard $(TEST)/*.c)
-DEVS = $(wildcard $(DEVICE)/*.c)
+DEVS = $(wildcard $(BACKEND)/*.c)
 RELEASEOBJS = $(addprefix $(OBJ)/$(REL)/, $(notdir $(SRCS:.c=.o)))
 DEBUGOBJS = $(addprefix $(OBJ)/$(DEBUG)/, $(notdir $(SRCS:.c=.o)))
 TESTOBJS = $(addprefix $(OBJ)/$(TEST)/, $(notdir $(TESTS:.c=.o)))
 PROFOBJS = $(addprefix $(OBJ)/$(PROF)/, $(notdir $(SRCS:.c=.o)))
-DEVOBJS = $(addprefix $(OBJ)/$(DEVICE)/, $(notdir $(DEVS:.c=.o)))
+DEVOBJS = $(addprefix $(OBJ)/$(BACKEND)/, $(notdir $(DEVS:.c=.o)))
 
 CC = gcc
 DEBUGGER = gdb-multiarch
@@ -32,8 +32,6 @@ ARCHIVEFLAGS = rcs
 DEBUGFLAGS = -g3
 TESTFLAGS = -O0 -g3
 PROFLAGS = $(RELEASEFLAGS) -pg
-LIBS = -lusb-1.0
-LIBFLAGS = -L/usr/lib -I/usr/include/libusb-1.0
 
 release: $(ODIR)/$(REL)/$(ANAME)
 
@@ -45,7 +43,7 @@ profile: $(ODIR)/$(PROF)/$(ONAME)
 	./$(ODIR)/$(PROF)/$(ONAME)
 	$(PROFILER) $(ODIR)/$(PROF)/$(ONAME) gmon.out > $(PROFNAME)
 
-device: $(ODIR)/$(DEVICE)/$(ONAME) 
+backend: $(ODIR)/$(BACKEND)/$(ONAME) 
 
 clean:
 	-$(RM) $(OBJ)
@@ -58,12 +56,12 @@ $(ODIR)/$(REL)/$(ANAME): $(RELEASEOBJS)
 
 $(ODIR)/$(DEBUG)/$(ONAME): $(DEBUGOBJS) $(TESTOBJS)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/$(DEBUG)/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) $(LIBS)
+	$(CC) -o $(ODIR)/$(DEBUG)/$(ONAME) $^ $(CFLAGS) $(DEBUGFLAGS) 
 	ctags -R *
 
 $(ODIR)/$(TEST)/$(ONAME): $(RELEASEOBJS) $(TESTOBJS) 
 	$(MKDIR)
-	$(CC) -o $(ODIR)/$(TEST)/$(ONAME) $^ $(CFLAGS) $(TESTFLAGS) $(LIBS)
+	$(CC) -o $(ODIR)/$(TEST)/$(ONAME) $^ $(CFLAGS) $(TESTFLAGS)
 	ctags -R *
 
 $(ODIR)/$(PROF)/$(ONAME): $(PROFOBJS) $(TESTOBJS)
@@ -71,9 +69,9 @@ $(ODIR)/$(PROF)/$(ONAME): $(PROFOBJS) $(TESTOBJS)
 	$(CC) -o $(ODIR)/$(PROF)/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS) 
 	ctags -R *
 
-$(ODIR)/$(DEVICE)/$(ONAME): $(DEVOBJS) $(ODIR)/$(REL)/$(ANAME)
+$(ODIR)/$(BACKEND)/$(ONAME): $(DEVOBJS) $(ODIR)/$(REL)/$(ANAME)
 	$(MKDIR)
-	$(CC) -o $(ODIR)/$(DEVICE)/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS) $(LIBFLAGS) $(LIBS) 
+	$(CC) -o $(ODIR)/$(BACKEND)/$(ONAME) $^ $(CFLAGS) $(RELEASEFLAGS)
 
 $(OBJ)/$(REL)/%.o: $(SRC)/%.c
 	$(MKDIR)   
@@ -99,7 +97,7 @@ $(OBJ)/$(PROF)/%.o: $(TEST)/%.c
 	$(MKDIR)   
 	$(CC) -o $@ $< -c $(CFLAGS) $(RELEASEFLAGS) $(PROFLAGS)
 
-$(OBJ)/$(DEVICE)/%.o: $(DEVICE)/%.c
+$(OBJ)/$(BACKEND)/%.o: $(BACKEND)/%.c
 	$(MKDIR)
 	$(CC) -o $@ $< -c $(CFLAGS) $(DEBUGFLAGS)
 
