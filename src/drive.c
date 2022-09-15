@@ -1,28 +1,12 @@
 #include <stdint.h>
 #include "drive.h"
 
-uint8_t read_drive8(DRIVE *drv, uint32_t addr) {
-    return drv->_read8(addr);
+uint32_t read_drive(DRIVE *drv, uint32_t sector, uint32_t offset, void *buf, uint32_t count) { 
+    return drv->_read(sector, offset, buf, count);
 }
 
-uint16_t read_drive16(DRIVE *drv, uint32_t addr) {
-    return drv->_read16(addr);
-}
-
-uint32_t read_drive32(DRIVE *drv, uint32_t addr) { 
-    return drv->_read32(addr);
-}
-
-void write_drive8(DRIVE *drv, uint8_t v, uint32_t addr) { 
-    drv->_write8(v, addr);
-}
-
-void write_drive16(DRIVE *drv, uint16_t v, uint32_t addr) {
-    drv->_write16(v, addr);
-}
-
-void write_drive32(DRIVE *drv, uint32_t v, uint32_t addr) {
-    drv->_write32(v, addr);
+uint32_t write_drive(DRIVE *drv, uint32_t sector, uint32_t offset, const void *buf, uint32_t count) {
+    return drv->_write(sector, offset, buf, count);
 }
 
 void erase_drive(DRIVE *drv) {
