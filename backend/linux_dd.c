@@ -16,7 +16,7 @@ static int p_write_disk[2];
 void child_read(uint32_t sector, uint32_t offset, uint32_t count) {
     uint32_t addr = sector*512 + offset;
     char addr_str[16];
-    char count_str[8];
+    char count_str[10];
     snprintf(addr_str, sizeof(addr_str), "skip=%u", addr);
     snprintf(count_str, sizeof(count_str), "count=%u", count);
     char *argv[] = {"/bin/dd", "if=/dev/sda1", "iflag=count_bytes,skip_bytes", addr_str, count_str, NULL};
@@ -96,11 +96,13 @@ int main() {
     status = pipe(p_write_disk);
     if (status == -1)
         exit(-1);    
-    fs_format(&fs);
     FAT32_FILE f;
-    file_open(&fs, "/bin", O_CREAT | O_DIRECTORY, &f);
-    file_open(&fs, "test.c", O_CREAT, &f);
-    file_write(&f, "hello world", 12);
+    FAT32_FILE *fptr;
+    char *wbuf = "hello world";
+    fs_format(&fs);
+    fs_init(&fs);
+    fptr = file_open(&fs, "/test.c", O_CREAT | O_DIRECTORY, &f);
+    file_write(fptr, wbuf, sizeof(wbuf));
     printf("Done!\n");
 }
 
