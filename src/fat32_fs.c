@@ -34,9 +34,9 @@ uint32_t fs_write_cluster(FAT32_FS *fs,
     if (INVALID_OFFSET(clus, clus_off))
         return i;
     uint32_t d_base = get_data_base_sector(fs);
-    uint32_t sector = get_data_sector_offset(fs, clus) + (clus_off / SECTOR_SIZE(fs)) + d_base;
-    uint16_t sector_off = clus_off % SECTOR_SIZE(fs);
-    uint32_t available_write_count= (CLUSTER_SIZE(fs)*SECTOR_SIZE(fs)) - clus_off;
+    uint32_t sector = get_data_sector_offset(fs, clus) + (clus_off / SECTOR_SZ) + d_base;
+    uint16_t sector_off = clus_off % SECTOR_SZ;
+    uint32_t available_write_count= (CLUSTER_SIZE(fs)*SECTOR_SZ) - clus_off;
     uint32_t max_write_count = MIN(count, available_write_count);
     i = write_drive(fs->drv, sector, sector_off, buf, max_write_count);
     return i;
@@ -53,9 +53,9 @@ uint32_t fs_read_cluster(FAT32_FS *fs,
 
     
     uint32_t d_base = get_data_base_sector(fs);
-    uint32_t sector = get_data_sector_offset(fs, clus) + (clus_off / SECTOR_SIZE(fs)) + d_base;
-    uint16_t sector_off = clus_off % SECTOR_SIZE(fs);
-    uint32_t available_read_count = (CLUSTER_SIZE(fs)*SECTOR_SIZE(fs)) - clus_off;
+    uint32_t sector = get_data_sector_offset(fs, clus) + (clus_off / SECTOR_SZ) + d_base;
+    uint16_t sector_off = clus_off % SECTOR_SZ;
+    uint32_t available_read_count = (CLUSTER_SIZE(fs)*SECTOR_SZ) - clus_off;
     uint32_t max_read_count = MIN(count, available_read_count);
     i = read_drive(fs->drv, sector, sector_off, buf, max_read_count);
     return i;
@@ -66,8 +66,8 @@ void fs_write_fat_entry(FAT32_FS *fs,
                         uint32_t n, 
                         uint32_t v) {
     uint32_t entry;
-    uint32_t sector = get_fat_base_sector(fs, fatnum) + (n*sizeof(uint32_t)) / SECTOR_SIZE(fs);
-    uint32_t offset = (n*sizeof(uint32_t)) % SECTOR_SIZE(fs);
+    uint32_t sector = get_fat_base_sector(fs, fatnum) + (n*sizeof(uint32_t)) / SECTOR_SZ;
+    uint32_t offset = (n*sizeof(uint32_t)) % SECTOR_SZ;
     read_drive(fs->drv, sector, offset, &entry, sizeof(uint32_t)); 
     uint32_t high_nibble = entry & FAT32_CLUSTER_ENTRY_RESERVED_MASK;
     entry = (v & FAT32_CLUSTER_ENTRY_MASK) | high_nibble;
@@ -78,8 +78,8 @@ uint32_t fs_read_fat_entry(FAT32_FS *fs,
                             uint8_t fatnum,
                             uint32_t n) {
     uint32_t entry;
-    uint32_t sector = get_fat_base_sector(fs, fatnum) + (n*sizeof(uint32_t)) / SECTOR_SIZE(fs);
-    uint32_t offset = (n*sizeof(uint32_t)) % SECTOR_SIZE(fs);
+    uint32_t sector = get_fat_base_sector(fs, fatnum) + (n*sizeof(uint32_t)) / SECTOR_SZ;
+    uint32_t offset = (n*sizeof(uint32_t)) % SECTOR_SZ;
     read_drive(fs->drv, sector, offset, &entry, sizeof(uint32_t));
     entry &= FAT32_CLUSTER_ENTRY_MASK;
     return entry;
@@ -105,7 +105,7 @@ void fs_format(FAT32_FS *fs) {
 }
 
 uint32_t fs_init(FAT32_FS *fs) {
-    read_drive(fs->drv, 0, 0, fs->bootsec.bytes, SECTOR_SIZE(fs));
+    read_drive(fs->drv, 0, 0, fs->bootsec.bytes, SECTOR_SZ);
     fs->valid = VERIFY_SECTORSIG(fs->bootsec.bytes[510], fs->bootsec.bytes[511]);
     uint32_t status = fs_read_fat_entry(fs, 0, 1);
     fs_write_fat_entry(fs, 0, 1, status & ~CLEAN_SHUTDOWN_BITMASK);
